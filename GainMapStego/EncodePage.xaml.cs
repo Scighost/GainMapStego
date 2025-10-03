@@ -345,8 +345,8 @@ public sealed partial class EncodePage : Page
                 ds.Clear(ColorPicker_ImageBackground.Color);
                 if (baseDecoder is not null)
                 {
-                    using var baseSoftware = await baseDecoder?.GetSoftwareBitmapAsync(BitmapPixelFormat.Rgba8, BitmapAlphaMode.Premultiplied, new BitmapTransform(), ExifOrientationMode.IgnoreExifOrientation, ColorManagementMode.DoNotColorManage);
-                    using var bitmap = CanvasBitmap.CreateFromSoftwareBitmap(CanvasDevice.GetSharedDevice(), baseSoftware);
+                    var pixelData = await baseDecoder.GetPixelDataAsync(BitmapPixelFormat.Rgba8, BitmapAlphaMode.Premultiplied, new(), ExifOrientationMode.IgnoreExifOrientation, ColorManagementMode.DoNotColorManage);
+                    using var bitmap = CanvasBitmap.CreateFromBytes(CanvasDevice.GetSharedDevice(), pixelData.DetachPixelData(), (int)baseDecoder.PixelWidth, (int)baseDecoder.PixelHeight, DirectXPixelFormat.R8G8B8A8UIntNormalized, 96);
                     Rect sourceRect = new(new(), bitmap.Size);
                     double scale = Segmented_ScaleMode.SelectedIndex == 0
                                  ? Math.Min(width / bitmap.Size.Width, height / bitmap.Size.Height)
@@ -364,8 +364,8 @@ public sealed partial class EncodePage : Page
             using var alternateBitmap = new CanvasRenderTarget(CanvasDevice.GetSharedDevice(), width, height, 96, DirectXPixelFormat.R8G8B8A8UIntNormalized, CanvasAlphaMode.Premultiplied);
             using (var ds = alternateBitmap.CreateDrawingSession())
             {
-                using var alternateSoftware = await alternateDecoder.GetSoftwareBitmapAsync(BitmapPixelFormat.Rgba8, BitmapAlphaMode.Premultiplied, new BitmapTransform(), ExifOrientationMode.IgnoreExifOrientation, ColorManagementMode.DoNotColorManage);
-                using var bitmap = CanvasBitmap.CreateFromSoftwareBitmap(CanvasDevice.GetSharedDevice(), alternateSoftware);
+                var pixelData = await alternateDecoder.GetPixelDataAsync(BitmapPixelFormat.Rgba8, BitmapAlphaMode.Premultiplied, new(), ExifOrientationMode.IgnoreExifOrientation, ColorManagementMode.DoNotColorManage);
+                using var bitmap = CanvasBitmap.CreateFromBytes(CanvasDevice.GetSharedDevice(), pixelData.DetachPixelData(), (int)alternateDecoder.PixelWidth, (int)alternateDecoder.PixelHeight, DirectXPixelFormat.R8G8B8A8UIntNormalized, 96);
                 Rect sourceRect = new(new(), bitmap.Size);
                 double scale = Segmented_ScaleMode.SelectedIndex == 0
                              ? Math.Min(width / bitmap.Size.Width, height / bitmap.Size.Height)
