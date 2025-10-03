@@ -6,7 +6,7 @@
 
 ## 引言
 
-`如何在一张看似普通的图像里藏点别的东西`一直是图像玩法中最有趣的创意之一。过去，互联网上已经出现了许多巧妙的思路，其中最经典、传播最广的两种是**GIF 动图**和**幻影坦克**。
+`如何在一张看似普通的图像里藏点别的东西` 一直是图像玩法中最有趣的创意之一。过去，互联网上已经出现了许多巧妙的思路，其中最经典、传播最广的两种是**GIF 动图**和**幻影坦克**。
 
 - **GIF 动图**利用平台缩略图只显示首帧的特性，将隐藏图像放在后续帧中。观众只需点开图片，就能在播放过程中看到隐藏的内容。
 - **幻影坦克**则通过半透明像素的叠加原理，让图像在不同背景下显示不同内容。观众只需切换背景颜色，就能看到隐藏的部分。
@@ -41,13 +41,13 @@
 
 ## 下载和使用
 
-可在 [Release](https://github.com/Scighost/GainMapStego/releases) 页面下载最新的 `GainMapStego.exe`，因为使用了 WinUI3 NativeAOT 发布，使用前需要安装 [Windows App Runtime](https://learn.microsoft.com/windows/apps/windows-app-sdk/downloads)。
+请在 [Release](https://github.com/Scighost/GainMapStego/releases) 页面下载最新的 `GainMapStego.exe`，仅支持 Windows 10/11 x64 平台。
+
+因为使用了 WinUI3 NativeAOT 发布，使用前需要安装 [Windows App Runtime](https://learn.microsoft.com/windows/apps/windows-app-sdk/downloads)。
 
 
 ## 示例
 
-<img src="./GainMapStego/sample.jpg" width="600" />
-
-<br>
+<img src="./GainMapStego/sample.jpg" width="400" />
 
 [アリスあまりにもデカすぎる... (@とーます)](https://www.pixiv.net/artworks/133571506)
