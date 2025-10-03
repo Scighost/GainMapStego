@@ -63,8 +63,6 @@ public sealed partial class DecodePage : Page
 
     public bool IsDecoding { get; set => SetProperty(ref field, value); }
 
-    public string Error { get; set => SetProperty(ref field, value); }
-
 
     private string? _imageFileName;
 

@@ -1,0 +1,10 @@
+[*.cs]
+
+# CS8618: 在退出构造函数时，不可为 null 的字段必须包含非 null 值。请考虑添加 "required" 修饰符或声明为可为 null。
+dotnet_diagnostic.CS8618.severity = none
+
+# CS0649: 编译器检测到从未分配值的未初始化的私有或内部字段声明。
+dotnet_diagnostic.CS0649.severity = none
+
+# MVVMTK0050: Using [ObservableObject] is not AOT compatible for WinRT
+dotnet_diagnostic.MVVMTK0050.severity = none

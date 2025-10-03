@@ -11,7 +11,7 @@
 		<UseWinUI>true</UseWinUI>
 		<EnableMsixTooling>true</EnableMsixTooling>
 		<Nullable>enable</Nullable>
-		<Version>0.1.0</Version>
+		<Version>0.1.1</Version>
 		<LangVersion>preview</LangVersion>
 		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
 		<ApplicationIcon>favicon.ico</ApplicationIcon>
@@ -19,8 +19,6 @@
 		<PublishAot>true</PublishAot>
 		<CETCompat>false</CETCompat>
 		<IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
-		<CsWinRTAotOptimizerEnabled Condition="'$(Configuration)' == 'Debug'">false</CsWinRTAotOptimizerEnabled>
-		<CsWinRTAotOptimizerEnabled Condition="'$(Configuration)' != 'Debug'">true</CsWinRTAotOptimizerEnabled>
 	</PropertyGroup>
 
 	<ItemGroup>
@@ -38,6 +36,9 @@
 		</None>
 		<None Update="sample.jpg">
 			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+		</None>
+		<None Update="首次打开前需要安装这个.txt">
+		  <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
 		</None>
 		<Content Include="intro.jpg">
 		  <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>

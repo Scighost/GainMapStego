@@ -1,0 +1,6 @@
+首次打开前需要安装 Windows App Runtime，
+下载链接：https://aka.ms/windowsappsdk/1.8/1.8.250916003/windowsappruntimeinstall-x64.exe
+
+如果不确定是否已安装，直接打开 GainMapStego.exe，如果出现错误弹窗，就是没安装。
+
+如要避免在首页展示图片，可以删除文件夹中的 intro.jpg 文件。
