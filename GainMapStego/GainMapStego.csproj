@@ -18,6 +18,7 @@
 		<WindowsPackageType>None</WindowsPackageType>
 		<PublishAot>true</PublishAot>
 		<CETCompat>false</CETCompat>
+		<IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
 		<CsWinRTAotOptimizerEnabled Condition="'$(Configuration)' == 'Debug'">false</CsWinRTAotOptimizerEnabled>
 		<CsWinRTAotOptimizerEnabled Condition="'$(Configuration)' != 'Debug'">true</CsWinRTAotOptimizerEnabled>
 	</PropertyGroup>
@@ -35,8 +36,13 @@
 		<None Update="uhdr.dll">
 			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
 		</None>
+		<None Update="sample.jpg">
+			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+		</None>
+		<Content Include="intro.jpg">
+		  <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+		</Content>
 		<EmbeddedResource Include="favicon.ico" />
-		<Content Include="intro.jpg" />
 	</ItemGroup>
 
 </Project>

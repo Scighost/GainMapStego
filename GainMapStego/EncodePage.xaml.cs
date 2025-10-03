@@ -558,7 +558,7 @@ public sealed partial class EncodePage : Page
             {
                 string name = _encodedJpegName ?? $"{DateTimeOffset.Now.ToUnixTimeSeconds()}.jpg";
                 var picker = new FileSavePicker(this.XamlRoot.ContentIslandEnvironment.AppWindowId);
-                picker.FileTypeChoices.Add("JPEG Image", [".jpg"]);
+                picker.FileTypeChoices.Add("JPEG Image", new string[] { ".jpg" });
                 picker.DefaultFileExtension = ".jpg";
                 picker.SuggestedFileName = name;
                 var fileResult = await picker.PickSaveFileAsync();

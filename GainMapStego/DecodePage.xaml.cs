@@ -398,7 +398,7 @@ public sealed partial class DecodePage : Page
                 };
                 string name = $"{Path.GetFileNameWithoutExtension(_imageFileName)}{suffix}{Path.GetExtension(_imageFileName)}";
                 var picker = new FileSavePicker(this.XamlRoot.ContentIslandEnvironment.AppWindowId);
-                picker.FileTypeChoices.Add("JPEG Image", [".jpg"]);
+                picker.FileTypeChoices.Add("JPEG Image", new string[] { ".jpg" });
                 picker.FileTypeChoices.Add("所有文件", ["*"]);
                 picker.DefaultFileExtension = ".jpg";
                 picker.SuggestedFileName = name;
