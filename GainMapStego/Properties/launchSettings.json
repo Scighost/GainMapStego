@@ -1,0 +1,10 @@
+{
+  "profiles": {
+    "GainMapStego (Package)": {
+      "commandName": "MsixPackage"
+    },
+    "GainMapStego (Unpackaged)": {
+      "commandName": "Project"
+    }
+  }
+}

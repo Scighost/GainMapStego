@@ -1,0 +1,392 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Page x:Class="GainMapStego.EncodePage"
+      xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+      xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+      xmlns:cwc="using:CommunityToolkit.WinUI.Controls"
+      xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+      xmlns:local="using:GainMapStego"
+      xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+      x:DefaultBindMode="OneWay"
+      mc:Ignorable="d">
+
+    <Page.Resources>
+        <local:ZoomFactorPercentConverter x:Key="ZoomFactorPercentConverter" />
+        <local:ObjectToVisibilityConverter x:Key="ObjectToVisibilityConverter" />
+        <local:ObjectToVisibilityReversedConverter x:Key="ObjectToVisibilityReversedConverter" />
+    </Page.Resources>
+
+    <Grid x:Name="RootGrid"
+          AllowDrop="True"
+          Background="Transparent">
+        <Grid.RowDefinitions>
+            <RowDefinition />
+            <RowDefinition />
+        </Grid.RowDefinitions>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="240" />
+            <ColumnDefinition />
+            <ColumnDefinition />
+        </Grid.ColumnDefinitions>
+
+
+
+        <!--  编码选项  -->
+        <Grid x:Name="Grid_ImageInfo"
+              Grid.RowSpan="2"
+              Grid.Column="0"
+              Margin="0,44,0,0"
+              RowSpacing="8">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition />
+            </Grid.RowDefinitions>
+
+            <Button x:Name="Button_Reset"
+                    Margin="12,0,12,0"
+                    HorizontalAlignment="Stretch"
+                    Command="{x:Bind ResetCommand}"
+                    Content="制作新图片" />
+
+            <ScrollViewer Grid.Row="1" Padding="12,0,12,0">
+                <StackPanel>
+
+                    <!--  图像质量  -->
+                    <Grid Margin="0,8,0,0">
+                        <TextBlock Text="图像质量" />
+                        <TextBlock HorizontalAlignment="Right" Text="{x:Bind Slider_ImageQuality.Value}" />
+                    </Grid>
+                    <Slider x:Name="Slider_ImageQuality"
+                            HorizontalAlignment="Stretch"
+                            Value="95" />
+
+                    <!--  输出分辨率  -->
+                    <Grid Margin="0,8,0,0">
+                        <TextBlock Text="输出分辨率" />
+                        <TextBlock HorizontalAlignment="Right" Text="{x:Bind Slider_ImageScale.Value.ToString('P0', x:Null)}" />
+                    </Grid>
+                    <Slider x:Name="Slider_ImageScale"
+                            HorizontalAlignment="Stretch"
+                            Maximum="1"
+                            Minimum="0.1"
+                            StepFrequency="0.01"
+                            ThumbToolTipValueConverter="{StaticResource ZoomFactorPercentConverter}"
+                            Value="1" />
+
+                    <!--  背景颜色  -->
+                    <Grid Margin="0,8,0,0">
+                        <TextBlock VerticalAlignment="Center" Text="背景颜色" />
+                        <SplitButton Padding="1" HorizontalAlignment="Right">
+                            <Border Width="40"
+                                    Height="32"
+                                    CornerRadius="4,0,0,4">
+                                <Border.Background>
+                                    <SolidColorBrush Color="{x:Bind ColorPicker_ImageBackground.Color}" />
+                                </Border.Background>
+                            </Border>
+                            <SplitButton.Flyout>
+                                <Flyout>
+                                    <ColorPicker x:Name="ColorPicker_ImageBackground"
+                                                 IsColorChannelTextInputVisible="False"
+                                                 Color="White" />
+                                </Flyout>
+                            </SplitButton.Flyout>
+                        </SplitButton>
+                    </Grid>
+
+                    <!--  完整展示  -->
+                    <Grid Margin="0,8,0,0">
+                        <TextBlock VerticalAlignment="Center" Text="完整展示" />
+                        <cwc:Segmented x:Name="Segmented_TargetDisplay"
+                                       HorizontalAlignment="Right"
+                                       SelectedIndex="0">
+                            <cwc:SegmentedItem Content="表图" />
+                            <cwc:SegmentedItem Content="里图" />
+                        </cwc:Segmented>
+                    </Grid>
+
+
+                    <!--  缩放模式  -->
+                    <Grid Margin="0,8,0,0">
+                        <TextBlock VerticalAlignment="Center" Text="缩放模式" />
+                        <cwc:Segmented x:Name="Segmented_ScaleMode"
+                                       HorizontalAlignment="Right"
+                                       SelectedIndex="0">
+                            <cwc:SegmentedItem Content="适应" />
+                            <cwc:SegmentedItem Content="填充" />
+                        </cwc:Segmented>
+                    </Grid>
+
+                    <MenuFlyoutSeparator Margin="0,12,0,8" />
+
+                    <TextBlock FontSize="12"
+                               Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                               Text="高级选项" />
+
+                    <!--  Gamma  -->
+                    <Grid Margin="0,12,0,0">
+                        <TextBlock Text="Gamma" />
+                        <TextBlock HorizontalAlignment="Right" Text="{x:Bind Slider_GainmapGamma.Value.ToString('F1', x:Null)}" />
+                    </Grid>
+                    <Slider x:Name="Slider_GainmapGamma"
+                            HorizontalAlignment="Stretch"
+                            Maximum="2"
+                            Minimum="0.1"
+                            StepFrequency="0.1"
+                            Value="1" />
+
+                    <!--  Offset  -->
+                    <Grid Margin="0,4,0,0">
+                        <TextBlock Text="Offset" />
+                        <TextBlock HorizontalAlignment="Right" Text="{x:Bind Slider_GainmapOffset.Value.ToString('F1', x:Null)}" />
+                    </Grid>
+                    <Slider x:Name="Slider_GainmapOffset"
+                            HorizontalAlignment="Stretch"
+                            Maximum="2"
+                            Minimum="0.1"
+                            StepFrequency="0.1"
+                            Value="1" />
+
+
+                </StackPanel>
+            </ScrollViewer>
+
+        </Grid>
+
+
+
+        <!--  表图  -->
+        <Grid x:Name="Grid_BaseImage"
+              Grid.Row="0"
+              Grid.Column="1"
+              Margin="40,20,20,20"
+              AllowDrop="True"
+              Background="Transparent"
+              DragOver="Grid_DragOver"
+              Drop="Grid_BaseImage_Drop">
+            <!--  外边框  -->
+            <Rectangle RadiusX="8"
+                       RadiusY="8"
+                       Stroke="{ThemeResource ButtonBorderThemeBrush}"
+                       StrokeDashArray="4,2"
+                       StrokeThickness="2" />
+            <!--  拖入或打开  -->
+            <StackPanel HorizontalAlignment="Center"
+                        VerticalAlignment="Center"
+                        Spacing="16"
+                        Visibility="{x:Bind BaseImageSource, Converter={StaticResource ObjectToVisibilityReversedConverter}}">
+                <TextBlock HorizontalAlignment="Center"
+                           FontSize="20"
+                           Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                           Text="表图 (可选)" />
+                <StackPanel Padding="12,0,0,0"
+                            HorizontalAlignment="Center"
+                            Orientation="Horizontal"
+                            Spacing="12">
+                    <TextBlock VerticalAlignment="Center"
+                               FontSize="16"
+                               Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                               Text="拖入图片" />
+                    <AppBarSeparator Height="36" Foreground="{ThemeResource TextFillColorTertiaryBrush}" />
+                    <Button Command="{x:Bind OpenBaseImageCommand}"
+                            Content="打开文件"
+                            FontSize="14" />
+                </StackPanel>
+            </StackPanel>
+            <Grid Margin="2" CornerRadius="8">
+                <!--  图像  -->
+                <Image x:Name="Image_Base"
+                       Source="{x:Bind BaseImageSource}"
+                       Stretch="Uniform" />
+                <!--  像素大小  -->
+                <Border HorizontalAlignment="Left"
+                        VerticalAlignment="Top"
+                        Background="{ThemeResource ControlOnImageFillColorDefaultBrush}"
+                        CornerRadius="0,0,8,0"
+                        Visibility="{x:Bind BaseImagePixelSize, Converter={StaticResource ObjectToVisibilityConverter}}">
+                    <TextBlock Margin="6,4,6,4"
+                               Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                               Text="{x:Bind BaseImagePixelSize}" />
+                </Border>
+            </Grid>
+
+        </Grid>
+
+
+        <!--  里图  -->
+        <Grid x:Name="Grid_AlternateImage"
+              Grid.Row="1"
+              Grid.Column="1"
+              Margin="40,20,20,20"
+              AllowDrop="True"
+              Background="Transparent"
+              DragOver="Grid_DragOver"
+              Drop="Grid_AlternateImage_Drop">
+            <!--  外边框  -->
+            <Rectangle RadiusX="8"
+                       RadiusY="8"
+                       Stroke="{ThemeResource ButtonBorderThemeBrush}"
+                       StrokeDashArray="4,2"
+                       StrokeThickness="2" />
+            <!--  拖入或打开  -->
+            <StackPanel HorizontalAlignment="Center"
+                        VerticalAlignment="Center"
+                        Spacing="16"
+                        Visibility="{x:Bind AlternateImageSource, Converter={StaticResource ObjectToVisibilityReversedConverter}}">
+                <TextBlock HorizontalAlignment="Center"
+                           FontSize="20"
+                           Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                           Text="里图 (必需)" />
+                <StackPanel Padding="12,0,0,0"
+                            HorizontalAlignment="Center"
+                            Orientation="Horizontal"
+                            Spacing="12">
+                    <TextBlock VerticalAlignment="Center"
+                               FontSize="16"
+                               Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                               Text="拖入图片" />
+                    <AppBarSeparator Height="36" Foreground="{ThemeResource TextFillColorTertiaryBrush}" />
+                    <Button Command="{x:Bind OpenAlternateImageCommand}"
+                            Content="打开文件"
+                            FontSize="14" />
+                </StackPanel>
+            </StackPanel>
+            <Grid Margin="2" CornerRadius="8">
+                <!--  图像  -->
+                <Image x:Name="Image_Alternate"
+                       Source="{x:Bind AlternateImageSource}"
+                       Stretch="Uniform" />
+                <!--  像素大小  -->
+                <Border HorizontalAlignment="Left"
+                        VerticalAlignment="Top"
+                        Background="{ThemeResource ControlOnImageFillColorDefaultBrush}"
+                        CornerRadius="0,0,8,0"
+                        Visibility="{x:Bind AlternateImagePixelSize, Converter={StaticResource ObjectToVisibilityConverter}}">
+                    <TextBlock Margin="6,4,6,4"
+                               Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                               Text="{x:Bind AlternateImagePixelSize}" />
+                </Border>
+            </Grid>
+        </Grid>
+
+
+
+        <Grid Grid.Row="0"
+              Grid.RowSpan="2"
+              Grid.Column="2"
+              Margin="20"
+              RowSpacing="12">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition />
+            </Grid.RowDefinitions>
+
+            <!--  合成  -->
+            <StackPanel Grid.Row="0"
+                        HorizontalAlignment="Left"
+                        VerticalAlignment="Center"
+                        Orientation="Horizontal"
+                        Spacing="8">
+                <Button MinWidth="80"
+                        MinHeight="32"
+                        Command="{x:Bind EncodeCommand}"
+                        Content="合成"
+                        IsEnabled="{x:Bind IsEncodeEnabled}"
+                        Style="{ThemeResource AccentButtonStyle}" />
+                <ProgressRing Width="24"
+                              Height="24"
+                              IsActive="{x:Bind EncodeCommand.IsRunning}"
+                              IsIndeterminate="True" />
+
+            </StackPanel>
+
+            <!--  操作  -->
+            <StackPanel Grid.Row="0"
+                        HorizontalAlignment="Right"
+                        VerticalAlignment="Center"
+                        Orientation="Horizontal"
+                        Spacing="8">
+                <Button Command="{x:Bind CopyCommand}"
+                        Content="复制"
+                        IsEnabled="{x:Bind IsEncodedSuccess}" />
+                <Button Command="{x:Bind SaveAsCommand}"
+                        Content="另存为"
+                        IsEnabled="{x:Bind IsEncodedSuccess}" />
+                <Button Command="{x:Bind CheckResultCommand}"
+                        Content="验证结果"
+                        IsEnabled="{x:Bind IsEncodedSuccess}" />
+
+            </StackPanel>
+
+
+            <!--  结果  -->
+            <Grid Grid.Row="1" Visibility="{x:Bind IsEncodedSuccess}">
+                <!--  外边框  -->
+                <Rectangle Grid.Row="1"
+                           RadiusX="8"
+                           RadiusY="8"
+                           Stroke="{ThemeResource ButtonBorderThemeBrush}"
+                           StrokeDashArray="4,2"
+                           StrokeThickness="2" />
+
+                <Image x:Name="Image_DisplayResultBase"
+                       Grid.Row="1"
+                       Margin="2"
+                       HorizontalAlignment="Center"
+                       VerticalAlignment="Center"
+                       Source="{x:Bind EncodedBaseImageSource}"
+                       Stretch="Uniform" />
+                <Image x:Name="Image_DisplayResultAlternate"
+                       Grid.Row="1"
+                       Margin="2"
+                       HorizontalAlignment="Center"
+                       VerticalAlignment="Center"
+                       Source="{x:Bind EncodedAlternateImageSource}"
+                       Stretch="Uniform"
+                       Visibility="Collapsed" />
+
+
+                <Border Margin="2"
+                        HorizontalAlignment="Right"
+                        VerticalAlignment="Top"
+                        Background="{ThemeResource ControlOnImageFillColorDefaultBrush}"
+                        CornerRadius="0,8,0,8">
+                    <StackPanel Margin="8,4,8,4"
+                                Orientation="Horizontal"
+                                Spacing="12">
+                        <TextBlock Text="{x:Bind EncodedJpegFileSize}" />
+                        <TextBlock Text="{x:Bind EncodedJpegPixelSize}" />
+                    </StackPanel>
+                </Border>
+
+
+                <cwc:Segmented x:Name="Segmented_DisplayResult"
+                               Margin="2"
+                               HorizontalAlignment="Left"
+                               VerticalAlignment="Top"
+                               Background="{ThemeResource ControlOnImageFillColorDefaultBrush}"
+                               CornerRadius="8"
+                               SelectedIndex="{x:Bind DisplayReusltIndex, Mode=TwoWay}">
+                    <cwc:SegmentedItem Content="表图" CornerRadius="8,0,0,8" />
+                    <cwc:SegmentedItem Content="里图" CornerRadius="0,8,8,0" />
+                </cwc:Segmented>
+
+
+            </Grid>
+
+        </Grid>
+
+
+
+        <!--  错误提醒  -->
+        <InfoBar x:Name="InfoBar"
+                 Grid.RowSpan="2"
+                 Grid.ColumnSpan="4"
+                 MaxWidth="680"
+                 Margin="240,0,240,80"
+                 HorizontalAlignment="Stretch"
+                 VerticalAlignment="Bottom"
+                 IsOpen="False" />
+
+
+    </Grid>
+</Page>
