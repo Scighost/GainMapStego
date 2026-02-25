@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>GainMapStego Web</title>
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+<body>
+  <header class="header">
+    <h1>GainMapStego Web</h1>
+    <p>基于 ISO 21496-1 增益图元数据思路的 Web 版</p>
+  </header>
+
+  <main class="main">
+    <nav class="tabs">
+      <button id="tab-encode" class="tab active">合成</button>
+      <button id="tab-decode" class="tab">解码</button>
+    </nav>
+
+    <section id="panel-encode" class="panel active">
+      <aside class="sidebar">
+        <h2>编码选项</h2>
+        <label>图像质量
+          <input id="image-quality" type="range" min="1" max="100" value="95" />
+          <span id="image-quality-value">95</span>
+        </label>
+        <label>输出分辨率
+          <input id="image-scale" type="range" min="0.1" max="1" step="0.01" value="1" />
+          <span id="image-scale-value">100%</span>
+        </label>
+        <label>背景颜色
+          <input id="bg-color" type="color" value="#ffffff" />
+        </label>
+        <label>完整展示
+          <select id="target-display">
+            <option value="base">表图</option>
+            <option value="alternate">里图</option>
+          </select>
+        </label>
+        <label>缩放模式
+          <select id="scale-mode">
+            <option value="fit">适应</option>
+            <option value="fill">填充</option>
+          </select>
+        </label>
+        <label>Gamma
+          <input id="gainmap-gamma" type="range" min="0.1" max="2" step="0.1" value="1" />
+          <span id="gainmap-gamma-value">1.0</span>
+        </label>
+        <label>Offset
+          <input id="gainmap-offset" type="range" min="0.1" max="2" step="0.1" value="1" />
+          <span id="gainmap-offset-value">1.0</span>
+        </label>
+
+        <div class="actions">
+          <button id="btn-open-base">打开表图</button>
+          <button id="btn-open-alt">打开里图</button>
+          <button id="btn-reset">制作新图片</button>
+          <button id="btn-encode" class="primary">合成</button>
+        </div>
+
+        <div class="actions">
+          <button id="btn-save-gainmap-hdr" disabled>保存增益图 JPG</button>
+          <button id="btn-save-base" disabled>导出表图 jpg</button>
+          <button id="btn-save-gainmap" disabled>导出增益图 jpg</button>
+          <button id="btn-save-alt" disabled>导出里图 jpg</button>
+        </div>
+
+        <input id="file-base" type="file" accept="image/*" hidden />
+        <input id="file-alt" type="file" accept="image/*" hidden />
+      </aside>
+
+      <section class="workspace three-cols">
+        <figure class="drop-zone" id="zone-base">
+          <figcaption>表图（可选）</figcaption>
+          <img id="preview-base" alt="表图预览" />
+        </figure>
+
+        <figure class="drop-zone" id="zone-alt">
+          <figcaption>里图（必需）</figcaption>
+          <img id="preview-alt" alt="里图预览" />
+        </figure>
+
+        <div class="result-box">
+          <div class="result-toolbar">
+            <button id="result-show-base" class="active">表图</button>
+            <button id="result-show-alt">里图</button>
+            <button id="result-show-gainmap">增益图</button>
+          </div>
+          <img id="preview-result" alt="结果预览" />
+          <div id="result-meta" class="meta"></div>
+        </div>
+      </section>
+    </section>
+
+    <section id="panel-decode" class="panel">
+      <aside class="sidebar">
+        <h2>解码</h2>
+        <p>打开由本工具导出的 GainMap HDR <code>.jpg</code> 文件，查看基础图、增益图和还原图。</p>
+        <div class="actions">
+          <button id="btn-open-gainmap-jpeg">打开增益图 JPG</button>
+          <button id="btn-export-dec-base" disabled>导出基础图</button>
+          <button id="btn-export-dec-gain" disabled>导出增益图</button>
+          <button id="btn-export-dec-alt" disabled>导出还原图</button>
+        </div>
+        <input id="file-gainmap-jpeg" type="file" accept=".jpg,.jpeg,image/jpeg" hidden />
+
+        <div id="decode-metadata" class="meta"></div>
+      </aside>
+
+      <section class="workspace three-cols">
+        <figure class="drop-zone">
+          <figcaption>基础图</figcaption>
+          <img id="decode-base" alt="基础图" />
+        </figure>
+        <figure class="drop-zone">
+          <figcaption>增益图</figcaption>
+          <img id="decode-gainmap" alt="增益图" />
+        </figure>
+        <figure class="drop-zone">
+          <figcaption>还原图（非 HDR，仅 SDR 预览）</figcaption>
+          <img id="decode-alt" alt="还原图" />
+        </figure>
+      </section>
+    </section>
+  </main>
+
+  <script type="module" src="./src/app.js"></script>
+</body>
+</html>
