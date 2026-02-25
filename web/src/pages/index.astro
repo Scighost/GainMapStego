@@ -1,0 +1,235 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+---
+<BaseLayout>
+  <!-- ── Hero ──────────────────────────────────────────── -->
+  <section class="home-hero">
+    <h1 class="home-wordmark">Gain Map&nbsp;<em>Stego</em>&nbsp;</h1>
+    <p class="tagline">
+      一种基于增益图元数据的图像隐藏方法。<br />
+      在支持 <a href="https://sspai.com/post/94425" target="_blank" rel="noopener" class="tagline-link">Gain Map HDR</a> 的环境中，可以直接展示隐藏的内容。
+    </p>
+    <div class="hero-cta">
+      <a href="/encode" class="btn btn-primary">开始合成</a>
+      <a href="/decode" class="btn btn-secondary">解码图片</a>
+      <a href="https://github.com/Scighost/GainMapStego" target="_blank" rel="noopener" class="btn btn-secondary">项目介绍</a>
+    </div>
+  </section>
+
+
+  <!-- ── Quick decode ───────────────────────────────────── -->
+  <section class="home-decode">
+    <div class="home-decode-header">
+      <h2>快速解码</h2>
+      <span class="badge">无需上传</span>
+    </div>
+    <p class="subtitle">拖入或点击选择一张由本工具生成的图片，立即在本地预览基础图、增益图和合成图。</p>
+
+    <div id="home-drop" class="home-drop-target">
+      <div class="drop-icon">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+          <path d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1"/>
+          <polyline points="8 12 12 8 16 12"/>
+          <line x1="12" y1="8" x2="12" y2="16"/>
+        </svg>
+      </div>
+      <p class="drop-title">拖入或点击选择图片</p>
+      <p class="drop-sub">所有处理均在浏览器本地完成，文件不会上传</p>
+      <input id="home-file-input" type="file" accept=".jpg,.jpeg,image/jpeg" hidden />
+    </div>
+
+    <div id="home-status" class="status-bar" style="margin-bottom:10px"></div>
+
+    <div id="home-results" class="home-results">
+      <figure class="drop-zone static-zone" id="home-card-base">
+        <figcaption>基础图<span class="zone-dim" id="hdim-base"></span><button id="hbtn-save-base" class="home-save-btn" disabled title="保存基础图"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></button></figcaption>
+        <div class="img-wrap"><img id="home-img-base" alt="基础图" /></div>
+      </figure>
+      <figure class="drop-zone static-zone" id="home-card-gainmap">
+        <figcaption>增益图<span class="zone-dim" id="hdim-gainmap"></span><button id="hbtn-save-gainmap" class="home-save-btn" disabled title="保存增益图"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></button></figcaption>
+        <div class="img-wrap"><img id="home-img-gainmap" alt="增益图" /></div>
+      </figure>
+      <figure class="drop-zone static-zone" id="home-card-alt">
+        <figcaption>合成图<span class="zone-dim" id="hdim-alt"></span><button id="hbtn-save-alt" class="home-save-btn" disabled title="保存合成图"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></button></figcaption>
+        <div class="img-wrap"><img id="home-img-alt" alt="合成图" /></div>
+      </figure>
+    </div>
+
+    <div id="home-meta" class="home-meta"><div class="meta-dl-wrap"></div></div>
+  </section>
+</BaseLayout>
+
+<script>
+import { unpackGainmapJpeg } from '../lib/iso21496.js';
+import { reconstructAlternateFromGainMap } from '../lib/image-processing.js';
+import { blobToImage, canvasToJpegBlob, downloadBlob, fileToUint8Array, imageBitmapToCanvas } from '../lib/utils.js';
+
+const dropTarget  = document.getElementById('home-drop')!;
+const fileInput   = document.getElementById('home-file-input') as HTMLInputElement;
+const statusEl    = document.getElementById('home-status')!;
+const resultsEl   = document.getElementById('home-results')!;
+const metaEl      = document.getElementById('home-meta')!;
+const imgBase     = document.getElementById('home-img-base') as HTMLImageElement;
+const imgGainmap  = document.getElementById('home-img-gainmap') as HTMLImageElement;
+const imgAlt      = document.getElementById('home-img-alt') as HTMLImageElement;
+
+const hBtnSaveBase    = document.getElementById('hbtn-save-base')    as HTMLButtonElement;
+const hBtnSaveGainmap = document.getElementById('hbtn-save-gainmap') as HTMLButtonElement;
+const hBtnSaveAlt     = document.getElementById('hbtn-save-alt')     as HTMLButtonElement;
+
+let _baseBlob: Blob | null = null;
+let _gainBlob: Blob | null = null;
+let _altBlob:  Blob | null = null;
+let _sourceStem = 'decoded';
+
+// 点击整个区域（包括按钮）均触发文件选择
+dropTarget.addEventListener('click', () => fileInput.click());
+
+fileInput.addEventListener('change', () => {
+  const f = fileInput.files?.[0];
+  if (f) processFile(f);
+});
+
+dropTarget.addEventListener('dragover', (e) => {
+  e.preventDefault();
+  dropTarget.classList.add('drag-over');
+});
+dropTarget.addEventListener('dragleave', () => dropTarget.classList.remove('drag-over'));
+dropTarget.addEventListener('drop', (e) => {
+  e.preventDefault();
+  dropTarget.classList.remove('drag-over');
+  const f = e.dataTransfer?.files?.[0];
+  if (f) processFile(f);
+});
+
+document.addEventListener('dragover', (e) => e.preventDefault());
+document.addEventListener('drop', (e) => {
+  e.preventDefault();
+  const f = e.dataTransfer?.files?.[0];
+  if (f && (f.type === 'image/jpeg' || f.name.match(/\.jpe?g$/i))) processFile(f);
+});
+
+async function processFile(file: File) {
+  _sourceStem = file.name.replace(/\.[^.]+$/, '');
+  statusEl.textContent = '解码中…';
+  statusEl.className = 'status-bar';
+  resultsEl.classList.remove('visible');
+  metaEl.classList.remove('visible');
+  // 重置卡片可见性
+  document.getElementById('home-card-base')!.style.gridColumn = '';
+  document.getElementById('home-card-gainmap')!.style.display = '';
+  document.getElementById('home-card-alt')!.style.display     = '';
+  hBtnSaveBase.disabled = hBtnSaveGainmap.disabled = hBtnSaveAlt.disabled = true;
+  try {
+    const bytes = await fileToUint8Array(file);
+    const { baseJpegBytes, gainmapJpegBytes, metadata } = unpackGainmapJpeg(bytes);
+
+    const baseBlob = new Blob([baseJpegBytes],    { type: 'image/jpeg' });
+    const gainBlob = new Blob([gainmapJpegBytes], { type: 'image/jpeg' });
+
+    const [baseBitmap, gainBitmap] = await Promise.all([blobToImage(baseBlob), blobToImage(gainBlob)]);
+    const baseCanvas    = imageBitmapToCanvas(baseBitmap);
+    const gainMapCanvas = imageBitmapToCanvas(gainBitmap);
+    const altCanvas     = reconstructAlternateFromGainMap({ baseCanvas, gainMapCanvas, metadata });
+    const altBlob       = await canvasToJpegBlob(altCanvas, 90);
+
+    _baseBlob = baseBlob; _gainBlob = gainBlob; _altBlob = altBlob;
+
+    imgBase.src    = baseCanvas.toDataURL('image/png');
+    imgGainmap.src = gainMapCanvas.toDataURL('image/png');
+    imgAlt.src     = altCanvas.toDataURL('image/png');
+    ;(document.getElementById('hdim-base')    as HTMLElement).textContent = `${baseCanvas.width} × ${baseCanvas.height}`;
+    ;(document.getElementById('hdim-gainmap') as HTMLElement).textContent = `${gainMapCanvas.width} × ${gainMapCanvas.height}`;
+    ;(document.getElementById('hdim-alt')     as HTMLElement).textContent = `${altCanvas.width} × ${altCanvas.height}`;
+
+    const dRow = (k: string, v: string) =>
+      `<div class="meta-dl-row"><span class="mk">${k}</span><span class="mv">${v}</span></div>`;
+    const dlWrap = metaEl.querySelector('.meta-dl-wrap')!;
+    dlWrap.innerHTML = [
+      dRow('文件', file.name),
+      dRow('大小', `${(file.size / 1024).toFixed(1)} KB`),
+      `<hr class="meta-dl-sep" />`,
+      dRow('Gamma',     metadata.gamma.map((x: number) => x.toFixed(3)).join(', ')),
+      dRow('minBoost',  metadata.minContentBoost.map((x: number) => x.toFixed(3)).join(', ')),
+      dRow('maxBoost',  metadata.maxContentBoost.map((x: number) => x.toFixed(3)).join(', ')),
+      dRow('useBaseCG', String(metadata.useBaseColorSpace)),
+    ].join('');
+
+    hBtnSaveBase.disabled = hBtnSaveGainmap.disabled = hBtnSaveAlt.disabled = false;
+    resultsEl.classList.add('visible');
+    document.getElementById('home-card-base')!.style.gridColumn = '';
+    document.getElementById('home-card-gainmap')!.style.display = '';
+    document.getElementById('home-card-alt')!.style.display     = '';
+    metaEl.classList.add('visible');
+    statusEl.textContent = '✓ 解码成功';
+    statusEl.className = 'status-bar ok';
+  } catch {
+    // 尝试将文件渲染为基础图（有效 JPEG 但无增益图）
+    try {
+      const bm = await blobToImage(file);
+      const cv = imageBitmapToCanvas(bm);
+      imgBase.src = cv.toDataURL('image/png');
+      _baseBlob = file;
+      hBtnSaveBase.disabled = false;
+      ;(document.getElementById('hdim-base') as HTMLElement).textContent = `${cv.width} × ${cv.height}`;
+      document.getElementById('home-card-base')!.style.gridColumn = '1 / -1';
+      document.getElementById('home-card-gainmap')!.style.display  = 'none';
+      document.getElementById('home-card-alt')!.style.display      = 'none';
+      resultsEl.classList.add('visible');
+      statusEl.textContent = '未找到增益图，仅显示原始图像';
+      statusEl.className   = 'status-bar';
+    } catch (e2: any) {
+      statusEl.textContent = `解码失败：${e2?.message ?? e2}`;
+      statusEl.className   = 'status-bar error';
+    }
+  }
+}
+
+hBtnSaveBase.addEventListener('click',    () => _baseBlob && downloadBlob(_baseBlob, `${_sourceStem}_base.jpg`));
+hBtnSaveGainmap.addEventListener('click', () => _gainBlob && downloadBlob(_gainBlob, `${_sourceStem}_gainmap.jpg`));
+hBtnSaveAlt.addEventListener('click',     () => _altBlob  && downloadBlob(_altBlob,  `${_sourceStem}_alternate.jpg`));
+</script>
+
+<style>
+  .tagline-link {
+    color: var(--accent);
+    text-decoration: none;
+    font-weight: 500;
+    transition: opacity 0.15s;
+  }
+  .tagline-link:hover {
+    opacity: 0.75;
+  }
+  /* 禁止主页快速解码结果卡片的 hover 动画 */
+  .static-zone { cursor: default !important; }
+  .static-zone:hover {
+    border-color: var(--border) !important;
+    background: var(--bg) !important;
+  }
+  .static-zone:hover .zone-placeholder svg {
+    opacity: .35 !important;
+    transform: none !important;
+  }
+  .home-save-btn {
+    display: flex;
+    align-items: center;
+    padding: 0.18rem 0.38rem;
+    background: var(--accent);
+    color: #fff;
+    border: 1px solid var(--accent);
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background 0.15s;
+    flex-shrink: 0;
+  }
+  .home-save-btn:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+  }
+  .home-save-btn:not(:disabled):hover {
+    background: var(--accent-hv, var(--accent));
+    border-color: var(--accent-hv, var(--accent));
+  }
+  img:not([src]),
+  img[src=""] { display: none; }
+</style>

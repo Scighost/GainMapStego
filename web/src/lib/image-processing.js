@@ -114,7 +114,18 @@ export function reconstructAlternateFromGainMap({ baseCanvas, gainMapCanvas, met
   const width = baseCanvas.width;
   const height = baseCanvas.height;
   const baseCtx = baseCanvas.getContext('2d', { willReadFrequently: true });
-  const gainCtx = gainMapCanvas.getContext('2d', { willReadFrequently: true });
+
+  // 若增益图尺寸与基础图不同（如缩小为整数倍），先将其拉伸到基础图尺寸
+  let scaledGainCanvas = gainMapCanvas;
+  if (gainMapCanvas.width !== width || gainMapCanvas.height !== height) {
+    scaledGainCanvas = document.createElement('canvas');
+    scaledGainCanvas.width = width;
+    scaledGainCanvas.height = height;
+    const sctx = scaledGainCanvas.getContext('2d', { willReadFrequently: true });
+    sctx.imageSmoothingEnabled = false;
+    sctx.drawImage(gainMapCanvas, 0, 0, width, height);
+  }
+  const gainCtx = scaledGainCanvas.getContext('2d', { willReadFrequently: true });
 
   const baseData = baseCtx.getImageData(0, 0, width, height);
   const gainData = gainCtx.getImageData(0, 0, width, height);

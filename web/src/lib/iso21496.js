@@ -901,7 +901,7 @@ export function packGainmapJpeg({ baseJpegBytes, gainmapJpegBytes, metadata }) {
 export function unpackGainmapJpeg(bytes) {
   const baseEnd = findFirstEoi(bytes);
   if (baseEnd < 4) {
-    throw new Error('不是合法的增益图 JPG');
+    throw new Error('不是合法的 JPG 图片');
   }
   const baseJpegBytes = bytes.slice(0, baseEnd);
 
@@ -927,7 +927,7 @@ export function unpackGainmapJpeg(bytes) {
     }
   }
   if (secondaryStart <= 0 || secondaryStart + 2 > bytes.length) {
-    throw new Error('未找到副图（gainmap）');
+    throw new Error('未找到增益图 (gain map)');
   }
 
   const secondaryEnd = findEoiAfter(bytes, secondaryStart + 2);
