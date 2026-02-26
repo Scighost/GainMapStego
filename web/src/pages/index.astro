@@ -45,13 +45,13 @@ import BaseLayout from '../layouts/BaseLayout.astro';
         <figcaption>基础图<span class="zone-dim" id="hdim-base"></span><button id="hbtn-save-base" class="home-save-btn" disabled title="保存基础图"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></button></figcaption>
         <div class="img-wrap"><img id="home-img-base" alt="基础图" /></div>
       </figure>
-      <figure class="drop-zone static-zone" id="home-card-gainmap">
-        <figcaption>增益图<span class="zone-dim" id="hdim-gainmap"></span><button id="hbtn-save-gainmap" class="home-save-btn" disabled title="保存增益图"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></button></figcaption>
-        <div class="img-wrap"><img id="home-img-gainmap" alt="增益图" /></div>
-      </figure>
       <figure class="drop-zone static-zone" id="home-card-alt">
         <figcaption>合成图<span class="zone-dim" id="hdim-alt"></span><button id="hbtn-save-alt" class="home-save-btn" disabled title="保存合成图"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></button></figcaption>
         <div class="img-wrap"><img id="home-img-alt" alt="合成图" /></div>
+      </figure>
+      <figure class="drop-zone static-zone" id="home-card-gainmap">
+        <figcaption>增益图<span class="zone-dim" id="hdim-gainmap"></span><button id="hbtn-save-gainmap" class="home-save-btn" disabled title="保存增益图"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></button></figcaption>
+        <div class="img-wrap"><img id="home-img-gainmap" alt="增益图" /></div>
       </figure>
     </div>
 
@@ -63,6 +63,7 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 import { unpackGainmapJpeg } from '../lib/iso21496.js';
 import { reconstructAlternateFromGainMap } from '../lib/image-processing.js';
 import { blobToImage, canvasToJpegBlob, downloadBlob, fileToUint8Array, imageBitmapToCanvas } from '../lib/utils.js';
+import { openLightbox } from '../lib/lightbox.js';
 
 const dropTarget  = document.getElementById('home-drop')!;
 const fileInput   = document.getElementById('home-file-input') as HTMLInputElement;
@@ -76,6 +77,20 @@ const imgAlt      = document.getElementById('home-img-alt') as HTMLImageElement;
 const hBtnSaveBase    = document.getElementById('hbtn-save-base')    as HTMLButtonElement;
 const hBtnSaveGainmap = document.getElementById('hbtn-save-gainmap') as HTMLButtonElement;
 const hBtnSaveAlt     = document.getElementById('hbtn-save-alt')     as HTMLButtonElement;
+
+// 图片预览（灯箱）
+const _homeImgItems = [
+  { el: imgBase,    label: '基础图' },
+  { el: imgAlt,     label: '合成图' },
+  { el: imgGainmap, label: '增益图' },
+];
+_homeImgItems.forEach(({ el, label }) => {
+  el.style.cursor = 'zoom-in';
+  el.addEventListener('click', () => {
+    if (!el.getAttribute('src')) return;
+    openLightbox({ src: el.src, label });
+  });
+});
 
 let _baseBlob: Blob | null = null;
 let _gainBlob: Blob | null = null;
@@ -163,6 +178,7 @@ async function processFile(file: File) {
     metaEl.classList.add('visible');
     statusEl.textContent = '✓ 解码成功';
     statusEl.className = 'status-bar ok';
+    scrollIntoViewIfNeeded(resultsEl);
   } catch {
     // 尝试将文件渲染为基础图（有效 JPEG 但无增益图）
     try {
@@ -178,11 +194,19 @@ async function processFile(file: File) {
       resultsEl.classList.add('visible');
       statusEl.textContent = '未找到增益图，仅显示原始图像';
       statusEl.className   = 'status-bar';
+      scrollIntoViewIfNeeded(resultsEl);
     } catch (e2: any) {
       statusEl.textContent = `解码失败：${e2?.message ?? e2}`;
       statusEl.className   = 'status-bar error';
     }
   }
+}
+
+function scrollIntoViewIfNeeded(el: Element) {
+  const navH = 52 + 8; // navbar height + padding
+  const rect = el.getBoundingClientRect();
+  const inView = rect.top >= navH && rect.bottom <= window.innerHeight;
+  if (!inView) window.scrollTo({ top: rect.top + window.scrollY - navH, behavior: 'smooth' });
 }
 
 hBtnSaveBase.addEventListener('click',    () => _baseBlob && downloadBlob(_baseBlob, `${_sourceStem}_base.jpg`));

@@ -88,9 +88,9 @@ import BaseLayout from '../layouts/BaseLayout.astro';
     <!-- ── Workspace ───────────────────────────────────── -->
     <section class="workspace">
       <figure class="drop-zone" id="zone-base">
-        <figcaption>基础图<span class="zone-tag opt">可选</span><span class="zone-dim" id="dim-base"></span></figcaption>
+        <figcaption>表图<span class="zone-tag opt">可选</span><span class="zone-dim" id="dim-base"></span></figcaption>
         <div class="img-wrap">
-          <img id="preview-base" alt="基础图" />
+          <img id="preview-base" alt="表图" />
           <div class="zone-placeholder" id="ph-base">
             <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
               <rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/>
@@ -142,6 +142,7 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 import { buildGainMap, composeBaseAndAlternate } from '../lib/image-processing.js';
 import { createIsoMetadata, packGainmapJpeg } from '../lib/iso21496.js';
 import { blobToImage, canvasToJpegBlob, downloadBlob, fileSizeText } from '../lib/utils.js';
+import { openLightbox } from '../lib/lightbox.js';
 
 /* ── State ─────────────────────────────────────────────── */
 interface Encoded {
@@ -291,6 +292,22 @@ $('result-show-alt').addEventListener('click',     () => showResult('alternate')
 $('result-show-gainmap').addEventListener('click', () => showResult('gainmap'));
 $('result-show-hdr').addEventListener('click',     () => showResult('hdr'));
 
+// 点击结果图片打开灯箱
+previewResult.style.cursor = 'zoom-in';
+previewResult.addEventListener('click', () => {
+  if (!encoded || !previewResult.getAttribute('src')) return;
+  // 以当前显示的 tab 为准，预览该张图
+  const activeBtn = document.querySelector('.result-toolbar button.active') as HTMLElement;
+  const labelMap: Record<string, string> = {
+    'result-show-hdr':     '预览',
+    'result-show-base':    '表图',
+    'result-show-alt':     '里图',
+    'result-show-gainmap': '增益图',
+  };
+  const label = activeBtn ? (labelMap[activeBtn.id] ?? '预览') : '预览';
+  openLightbox({ src: previewResult.src, label });
+});
+
 /* ── Encode ────────────────────────────────────────────── */
 $('btn-encode').addEventListener('click', async () => {
   if (_isEncoding) return;
@@ -352,7 +369,7 @@ $('btn-encode').addEventListener('click', async () => {
       row('分辨率', `${outW} × ${outH}`),
       row('基础图', fileSizeText(baseBlob.size)),
       row('增益图', fileSizeText(gainBlob.size)),
-      row('增益图 JPG', fileSizeText(encoded.gainmapHdrBlob.size)),
+      row('合成图', fileSizeText(encoded.gainmapHdrBlob.size)),
       `<hr class="meta-dl-sep" />`,
       row('minBoost', gain.minContentBoost.map((x: number) => x.toFixed(3)).join(', ')),
       row('maxBoost', gain.maxContentBoost.map((x: number) => x.toFixed(3)).join(', ')),

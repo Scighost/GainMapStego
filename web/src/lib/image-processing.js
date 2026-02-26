@@ -1,4 +1,8 @@
 import { clamp, imageDataToCanvas } from './utils.js';
+import {
+  buildGainMapGL,
+  reconstructAlternateFromGainMapGL,
+} from './webgl-processing.js';
 
 function srgbToLinear(v) {
   const x = v / 255;
@@ -67,6 +71,15 @@ export function composeBaseAndAlternate({
 }
 
 export function buildGainMap({ baseCanvas, alternateCanvas, gamma = 1, offset = 1 }) {
+  try {
+    return buildGainMapGL({ baseCanvas, alternateCanvas, gamma, offset });
+  } catch {
+    // GPU 加速不可用，回退至 CPU 实现
+  }
+  return _buildGainMapCPU({ baseCanvas, alternateCanvas, gamma, offset });
+}
+
+function _buildGainMapCPU({ baseCanvas, alternateCanvas, gamma = 1, offset = 1 }) {
   const width = baseCanvas.width;
   const height = baseCanvas.height;
   const baseCtx = baseCanvas.getContext('2d', { willReadFrequently: true });
@@ -111,6 +124,15 @@ export function buildGainMap({ baseCanvas, alternateCanvas, gamma = 1, offset = 
 }
 
 export function reconstructAlternateFromGainMap({ baseCanvas, gainMapCanvas, metadata }) {
+  try {
+    return reconstructAlternateFromGainMapGL({ baseCanvas, gainMapCanvas, metadata });
+  } catch {
+    // GPU 加速不可用，回退至 CPU 实现
+  }
+  return _reconstructAlternateFromGainMapCPU({ baseCanvas, gainMapCanvas, metadata });
+}
+
+function _reconstructAlternateFromGainMapCPU({ baseCanvas, gainMapCanvas, metadata }) {
   const width = baseCanvas.width;
   const height = baseCanvas.height;
   const baseCtx = baseCanvas.getContext('2d', { willReadFrequently: true });

@@ -84,6 +84,7 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 import { unpackGainmapJpeg } from '../lib/iso21496.js';
 import { reconstructAlternateFromGainMap } from '../lib/image-processing.js';
 import { blobToImage, canvasToJpegBlob, downloadBlob, fileToUint8Array, imageBitmapToCanvas } from '../lib/utils.js';
+import { openLightbox } from '../lib/lightbox.js';
 
 /* ── State ─────────────────────────────────────────────── */
 interface Decoded {
@@ -114,6 +115,20 @@ function setExports(on: boolean) {
   btnSaveAlt.disabled     = !on;
 }
 setExports(false);
+
+// 图片预览（灯箱）
+const _decodeImgItems = [
+  { el: imgBase,    label: '基础图' },
+  { el: imgAlt,     label: '合成图' },
+  { el: imgGainmap, label: '增益图' },
+];
+_decodeImgItems.forEach(({ el, label }) => {
+  el.style.cursor = 'zoom-in';
+  el.addEventListener('click', () => {
+    if (!el.getAttribute('src')) return;
+    openLightbox({ src: el.src, label });
+  });
+});
 
 /* ── Open / drop ───────────────────────────────────────── */
 // 侧栏拖放区：点击 + 拖入
@@ -206,6 +221,7 @@ async function processFile(file: File) {
     setExports(true);
     statusEl.textContent = '✓ 解码成功';
     statusEl.className   = 'status-bar ok';
+    scrollIntoViewIfNeeded(workspace);
   } catch (err: any) {
     // 尝试将文件作为普通 JPEG 显示（有效图片但无增益图）
     try {
@@ -217,6 +233,7 @@ async function processFile(file: File) {
       btnSaveBase.disabled = false;
       statusEl.textContent = '未找到增益图，仅显示原始图像';
       statusEl.className   = 'status-bar';
+      scrollIntoViewIfNeeded(workspace);
     } catch {
       statusEl.textContent = `解码失败：${err?.message ?? err}`;
       statusEl.className   = 'status-bar error';
@@ -226,6 +243,14 @@ async function processFile(file: File) {
     sidebarDrop.style.pointerEvents = '';
     sidebarDrop.style.cursor = '';
   }
+}
+
+/* ── Helpers ───────────────────────────────────────────── */
+function scrollIntoViewIfNeeded(el: Element) {
+  const navH = 52 + 8; // navbar height + padding
+  const rect = el.getBoundingClientRect();
+  const inView = rect.top >= navH && rect.bottom <= window.innerHeight;
+  if (!inView) window.scrollTo({ top: rect.top + window.scrollY - navH, behavior: 'smooth' });
 }
 
 /* ── Save ──────────────────────────────────────────────── */
