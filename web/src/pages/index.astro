@@ -7,7 +7,7 @@ import BaseLayout from '../layouts/BaseLayout.astro';
     <h1 class="home-wordmark">Gain Map&nbsp;<em>Stego</em>&nbsp;</h1>
     <p class="tagline">
       一种基于增益图元数据的图像隐藏方法。<br />
-      在支持 <a href="https://sspai.com/post/94425" target="_blank" rel="noopener" class="tagline-link">Gain Map HDR</a> 的环境中，可以直接展示隐藏的内容。
+      在支持 <a href="https://sspai.com/post/94425" target="_blank" rel="noopener" class="tagline-link">Gain Map HDR</a> 的<span class="env-tip" tabindex="0" aria-label="支持的环境">环境中<span class="env-tip-popup"><span class="env-tip-title">支持展示 HDR 的环境</span><span class="env-tip-tags"><span class="env-tag">Android 15+</span><span class="env-tag">iOS 18+</span><span class="env-tag">部分浏览器</span></span></span></span>，可以直接展示隐藏的内容。
     </p>
     <div class="hero-cta">
       <a href="/encode" class="btn btn-primary">开始合成</a>
@@ -23,7 +23,7 @@ import BaseLayout from '../layouts/BaseLayout.astro';
       <h2>快速解码</h2>
       <span class="badge">无需上传</span>
     </div>
-    <p class="subtitle">拖入或点击选择一张由本工具生成的图片，立即在本地预览基础图、增益图和合成图。</p>
+    <p class="subtitle">拖入或点击选择一张由本工具生成的图片，立即在本地预览基础图、合成图和增益图。</p>
 
     <div id="home-drop" class="home-drop-target">
       <div class="drop-icon">
@@ -256,4 +256,111 @@ hBtnSaveAlt.addEventListener('click',     () => _altBlob  && downloadBlob(_altBl
   }
   img:not([src]),
   img[src=""] { display: none; }
+
+  .env-tip {
+    position: relative;
+    display: inline-block;
+    color: inherit;
+    font: inherit;
+    cursor: default;
+    user-select: none;
+    outline: none;
+    text-decoration: none;
+    background-image: repeating-linear-gradient(
+      to right,
+      rgba(128,128,128,0.45) 0px 5px,
+      transparent 5px 8px
+    );
+    background-position: 0 100%;
+    background-size: 8px 2px;
+    background-repeat: repeat-x;
+    padding-bottom: 0;
+    transition: background-image 0.15s;
+  }
+  .env-tip:hover,
+  .env-tip:focus,
+  .env-tip.open {
+    background-image: repeating-linear-gradient(
+      to right,
+      rgba(128,128,128,0.85) 0px 5px,
+      transparent 5px 8px
+    );
+  }
+  .env-tip-popup {
+    visibility: hidden;
+    opacity: 0;
+    pointer-events: none;
+    position: absolute;
+    left: 50%;
+    bottom: calc(100% + 10px);
+    transform: translateX(-50%) translateY(6px);
+    min-width: 140px;
+    background: var(--bg-card, #1c1c1e);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 0.6em 0.75em 0.65em;
+    box-shadow: 0 8px 28px rgba(0,0,0,.28), 0 1px 4px rgba(0,0,0,.12);
+    transition: opacity 0.2s, visibility 0.2s, transform 0.2s;
+    z-index: 100;
+  }
+  .env-tip-title {
+    display: block;
+    font-size: 0.88rem;
+    font-weight: 600;
+    color: var(--fg);
+    letter-spacing: 0.01em;
+    margin-bottom: 0.5em;
+    white-space: nowrap;
+  }
+  .env-tip-tags {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3em;
+  }
+  .env-tag {
+    display: inline-block;
+    padding: 0.18em 0.55em;
+    border-radius: 5px;
+    background: color-mix(in srgb, var(--accent) 14%, transparent);
+    color: var(--accent);
+    font-size: 0.78rem;
+    font-weight: 500;
+    letter-spacing: 0.01em;
+    white-space: nowrap;
+  }
+  /* 箭头 */
+  .env-tip-popup::before,
+  .env-tip-popup::after {
+    content: '';
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    border: 6px solid transparent;
+    border-top-color: var(--border);
+  }
+  .env-tip-popup::after {
+    border-top-color: var(--bg-card, #1c1c1e);
+    margin-top: -1.5px;
+  }
+  .env-tip:hover .env-tip-popup,
+  .env-tip:focus .env-tip-popup,
+  .env-tip.open .env-tip-popup {
+    visibility: visible;
+    opacity: 1;
+    pointer-events: auto;
+    transform: translateX(-50%) translateY(0);
+  }
 </style>
+
+<script>
+  document.querySelectorAll('.env-tip').forEach((el) => {
+    el.addEventListener('click', (e) => {
+      e.stopPropagation();
+      el.classList.toggle('open');
+    });
+  });
+  document.addEventListener('click', () => {
+    document.querySelectorAll('.env-tip.open').forEach((el) => el.classList.remove('open'));
+  });
+</script>

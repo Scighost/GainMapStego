@@ -22,10 +22,13 @@ function buildMinimalSrgbIccProfile() {
   const s15 = (v) => Math.round(v * 65536) | 0;
 
   // Profile memory layout
+  // TRC: 'curv' type-sig(4) + reserved(4) + count(4) + N×U16(N*2), N=1024
+  const TRC_N = 1024;
+  const TRC_SIZE = 12 + TRC_N * 2; // = 2060 bytes (4-byte aligned)
   const NUM_TAGS = 7;
   const TAG_TABLE_OFFSET = 132;               // 128 (header) + 4 (count)
   const TAG_DATA_OFFSET = TAG_TABLE_OFFSET + NUM_TAGS * 12; // = 216
-  const TOTAL_SIZE = TAG_DATA_OFFSET + 4 * 20 + 14;         // = 310
+  const TOTAL_SIZE = TAG_DATA_OFFSET + 4 * 20 + TRC_SIZE;  // = 2356
 
   const buf = new Uint8Array(TOTAL_SIZE);
 
@@ -66,9 +69,9 @@ function buildMinimalSrgbIccProfile() {
   te(1, 'gXYZ', TAG_DATA_OFFSET + 20, 20); // gXYZ at 236
   te(2, 'bXYZ', TAG_DATA_OFFSET + 40, 20); // bXYZ at 256
   te(3, 'wtpt', TAG_DATA_OFFSET + 60, 20); // wtpt at 276
-  te(4, 'rTRC', TAG_DATA_OFFSET + 80, 14); // TRC at 296 (shared)
-  te(5, 'gTRC', TAG_DATA_OFFSET + 80, 14);
-  te(6, 'bTRC', TAG_DATA_OFFSET + 80, 14);
+  te(4, 'rTRC', TAG_DATA_OFFSET + 80, TRC_SIZE); // TRC shared by R/G/B
+  te(5, 'gTRC', TAG_DATA_OFFSET + 80, TRC_SIZE);
+  te(6, 'bTRC', TAG_DATA_OFFSET + 80, TRC_SIZE);
 
   // ── XYZ tag data helper (20 bytes: 'XYZ '+reserved+x+y+z) ────────────────
   const xyzTag = (off, x, y, z) => {
@@ -84,12 +87,20 @@ function buildMinimalSrgbIccProfile() {
   xyzTag(TAG_DATA_OFFSET + 40, 0.1430805, 0.0606169, 0.7141733); // bXYZ
   xyzTag(TAG_DATA_OFFSET + 60, 0.9642029, 1.0000000, 0.8249054); // wtpt D50
 
-  // ── Tone Reproduction Curve (curv, gamma ≈ 2.2, 14 bytes) ─────────────────
+  // ── Tone Reproduction Curve (curv, 1024-point sRGB piecewise LUT) ─────────
+  // Accurately encodes the IEC 61966-2-1 piecewise TRC:
+  //   linear = cs / 12.92                      if cs ≤ 0.04045
+  //   linear = ((cs + 0.055) / 1.055) ^ 2.4   if cs > 0.04045
+  // Each U16 entry = round(linear × 65535), input index i → cs = i / (N-1).
   const trcOff = TAG_DATA_OFFSET + 80;
-  wcc(trcOff, 'curv');              // type sig
-  // 4 bytes reserved = 0
-  w32(trcOff + 8, 1);              // count = 1 (single gamma entry)
-  w16(trcOff + 12, Math.round(2.2 * 256)); // gamma 2.2 as U8.8 = 0x0233
+  wcc(trcOff, 'curv');               // type sig
+  // 4 bytes reserved = 0 already
+  w32(trcOff + 8, TRC_N);            // count = 1024
+  for (let i = 0; i < TRC_N; i++) {
+    const cs = i / (TRC_N - 1);
+    const lin = cs <= 0.04045 ? cs / 12.92 : ((cs + 0.055) / 1.055) ** 2.4;
+    w16(trcOff + 12 + i * 2, Math.round(Math.min(1, Math.max(0, lin)) * 65535));
+  }
 
   return buf;
 }
