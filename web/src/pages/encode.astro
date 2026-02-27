@@ -202,6 +202,7 @@ let _cancelled   = false;
 function setEncoding(on: boolean) {
   _isEncoding = on;
   if (on) {
+    _cancelled = false;
     btnEncode.textContent = '合成中…';
     btnEncode.classList.add('btn-running');
     btnEncode.disabled = true;
@@ -211,7 +212,6 @@ function setEncoding(on: boolean) {
     btnEncode.classList.remove('btn-running');
     btnEncode.disabled = false;
     btnCancel.style.display = 'none';
-    _cancelled = false;
   }
 }
 btnCancel.addEventListener('click', () => { _cancelled = true; setEncoding(false); statusEl.textContent = '已取消'; });
@@ -251,10 +251,12 @@ bindDrop('zone-alt',  'alt');
 fileBase.addEventListener('change', async e => {
   const f = (e.target as HTMLInputElement).files?.[0];
   if (f) await loadImage(f, 'base');
+  fileBase.value = '';
 });
 fileAlt.addEventListener('change', async e => {
   const f = (e.target as HTMLInputElement).files?.[0];
   if (f) await loadImage(f, 'alt');
+  fileAlt.value = '';
 });
 
 $('btn-reset').addEventListener('click', () => {
@@ -262,6 +264,8 @@ $('btn-reset').addEventListener('click', () => {
   previewBase.removeAttribute('src');
   previewAlt.removeAttribute('src');
   previewResult.removeAttribute('src');
+  fileBase.value = '';
+  fileAlt.value  = '';
   if (_hdrObjectUrl) { URL.revokeObjectURL(_hdrObjectUrl); _hdrObjectUrl = null; }
   resultMeta.innerHTML = '';
   resultMeta.style.display = 'none';
@@ -319,10 +323,16 @@ $('btn-encode').addEventListener('click', async () => {
   setEncoding(true);
   statusEl.textContent = '合成中…';
   statusEl.className   = 'status-bar';
+  // 让浏览器先完成一帧重绘，避免状态提示被重计算阻塞
+  await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
   try {
     const gamma  = +$i('gainmap-gamma').value;
     const offset = +$i('gainmap-offset').value;
 
+    const yieldFrame = () => new Promise<void>(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+
+    statusEl.textContent = '正在缩放图像…';
+    await yieldFrame();
     const { baseCanvas, alternateCanvas, outW, outH } = composeBaseAndAlternate({
       baseBitmap,
       alternateBitmap: altBitmap,
@@ -333,6 +343,8 @@ $('btn-encode').addEventListener('click', async () => {
     });
     if (_cancelled) return;
 
+    statusEl.textContent = '正在计算增益图…';
+    await yieldFrame();
     const gain = buildGainMap({ baseCanvas, alternateCanvas, gamma, offset });
     const meta = createIsoMetadata({
       gamma: [gamma, gamma, gamma],
@@ -346,6 +358,8 @@ $('btn-encode').addEventListener('click', async () => {
     });
     if (_cancelled) return;
 
+    statusEl.textContent = '正在编码 JPEG…';
+    await yieldFrame();
     const quality = +$i('image-quality').value;
     const [baseBlob, gainBlob] = await Promise.all([
       canvasToJpegBlob(baseCanvas, quality),
@@ -353,6 +367,8 @@ $('btn-encode').addEventListener('click', async () => {
     ]);
     if (_cancelled) return;
 
+    statusEl.textContent = '正在打包 JPEG…';
+    await yieldFrame();
     const baseBytes   = new Uint8Array(await baseBlob.arrayBuffer());
     const gainBytes   = new Uint8Array(await gainBlob.arrayBuffer());
     const hdrBytes    = packGainmapJpeg({ baseJpegBytes: baseBytes, gainmapJpegBytes: gainBytes, metadata: meta });
