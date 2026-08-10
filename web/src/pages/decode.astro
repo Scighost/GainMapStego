@@ -37,10 +37,18 @@ import BaseLayout from '../layouts/BaseLayout.astro';
               <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
               <polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
             </svg>
+            保存
           </button>
         </figcaption>
         <div class="img-wrap">
           <img id="img-base" alt="基础图" />
+          <div class="zone-placeholder">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/>
+              <polyline points="21 15 16 10 5 21"/>
+            </svg>
+            <span>基础图将显示在此</span>
+          </div>
         </div>
       </figure>
 
@@ -53,10 +61,18 @@ import BaseLayout from '../layouts/BaseLayout.astro';
               <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
               <polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
             </svg>
+            保存
           </button>
         </figcaption>
         <div class="img-wrap">
           <img id="img-alt" alt="合成图" />
+          <div class="zone-placeholder">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/>
+              <polyline points="21 15 16 10 5 21"/>
+            </svg>
+            <span>合成图将显示在此</span>
+          </div>
         </div>
       </figure>
 
@@ -69,10 +85,18 @@ import BaseLayout from '../layouts/BaseLayout.astro';
               <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
               <polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
             </svg>
+            保存
           </button>
         </figcaption>
         <div class="img-wrap">
           <img id="img-gainmap" alt="增益图" />
+          <div class="zone-placeholder">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/>
+              <polyline points="21 15 16 10 5 21"/>
+            </svg>
+            <span>增益图将显示在此</span>
+          </div>
         </div>
       </figure>
     </section>
@@ -83,180 +107,172 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 <script>
 import { unpackGainmapJpeg } from '../lib/iso21496.js';
 import { reconstructAlternateFromGainMap } from '../lib/image-processing.js';
-import { blobToImage, canvasToJpegBlob, downloadBlob, fileToUint8Array, imageBitmapToCanvas } from '../lib/utils.js';
+import { blobToImage, canvasToJpegBlob, downloadBlob, fileToUint8Array, imageBitmapToCanvas, scrollIntoViewIfNeeded } from '../lib/utils.js';
 import { openLightbox } from '../lib/lightbox.js';
 
-/* ── State ─────────────────────────────────────────────── */
-interface Decoded {
-  baseBlob:    Blob;
-  gainBlob:    Blob;
-  altBlob:     Blob;
-  baseCanvas:  HTMLCanvasElement;
-}
+function initDecodePage() {
+  const fileInput = document.getElementById('file-input') as HTMLInputElement | null;
+  if (!fileInput) return; // 不在解码页面，直接返回
 
-let decoded: Decoded | null = null;
-let _sourceStem = 'decoded';
-
-/* ── Refs ──────────────────────────────────────────────── */
-const fileInput  = document.getElementById('file-input')  as HTMLInputElement;
-const imgBase    = document.getElementById('img-base')    as HTMLImageElement;
-const imgGainmap = document.getElementById('img-gainmap') as HTMLImageElement;
-const imgAlt     = document.getElementById('img-alt')     as HTMLImageElement;
-const statusEl   = document.getElementById('decode-status')!;
-const metaEl     = document.getElementById('decode-meta')!;
-
-const btnSaveBase    = document.getElementById('btn-save-base')    as HTMLButtonElement;
-const btnSaveGainmap = document.getElementById('btn-save-gainmap') as HTMLButtonElement;
-const btnSaveAlt     = document.getElementById('btn-save-alt')     as HTMLButtonElement;
-
-function setExports(on: boolean) {
-  btnSaveBase.disabled    = !on;
-  btnSaveGainmap.disabled = !on;
-  btnSaveAlt.disabled     = !on;
-}
-setExports(false);
-
-// 图片预览（灯箱）
-const _decodeImgItems = [
-  { el: imgBase,    label: '基础图' },
-  { el: imgAlt,     label: '合成图' },
-  { el: imgGainmap, label: '增益图' },
-];
-_decodeImgItems.forEach(({ el, label }) => {
-  el.style.cursor = 'zoom-in';
-  el.addEventListener('click', () => {
-    if (!el.getAttribute('src')) return;
-    openLightbox({ src: el.src, label });
-  });
-});
-
-/* ── Open / drop ───────────────────────────────────────── */
-// 侧栏拖放区：点击 + 拖入
-const sidebarDrop = document.getElementById('sidebar-drop')!;
-sidebarDrop.addEventListener('click', () => fileInput.click());
-sidebarDrop.addEventListener('dragover', e => { e.preventDefault(); sidebarDrop.classList.add('drag-over'); });
-sidebarDrop.addEventListener('dragleave', () => sidebarDrop.classList.remove('drag-over'));
-sidebarDrop.addEventListener('drop', e => {
-  e.preventDefault(); sidebarDrop.classList.remove('drag-over');
-  const f = (e as DragEvent).dataTransfer?.files?.[0];
-  if (f) processFile(f);
-});
-const sidebarDropOrigHTML = sidebarDrop.innerHTML;
-
-fileInput.addEventListener('change', () => {
-  const f = fileInput.files?.[0];
-  if (f) processFile(f);
-});
-
-const workspace = document.getElementById('decode-workspace')!;
-workspace.addEventListener('dragover', e => { e.preventDefault(); workspace.style.borderColor = 'var(--accent)'; });
-workspace.addEventListener('dragleave', () => { workspace.style.borderColor = ''; });
-workspace.addEventListener('drop', e => {
-  e.preventDefault(); workspace.style.borderColor = '';
-  const f = (e as DragEvent).dataTransfer?.files?.[0];
-  if (f) processFile(f);
-});
-
-document.addEventListener('dragover', e => e.preventDefault());
-document.addEventListener('drop', e => {
-  e.preventDefault();
-  const f = (e as DragEvent).dataTransfer?.files?.[0];
-  if (f && (f.type === 'image/jpeg' || f.name.match(/\.jpe?g$/i))) processFile(f);
-});
-
-/* ── Decode ────────────────────────────────────────────── */
-async function processFile(file: File) {
-  _sourceStem = file.name.replace(/\.[^.]+$/, '');
-  statusEl.textContent = '';
-  statusEl.className   = 'status-bar';
-  setExports(false);
-  // 解码期间在侧栏拖放框内显示旋转图标
-  sidebarDrop.innerHTML = `<svg class="spin-svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="9" stroke-opacity=".25"/><path d="M12 3a9 9 0 019 9" stroke-linecap="round"/></svg><span>解码中…</span>`;
-  sidebarDrop.style.pointerEvents = 'none';
-  sidebarDrop.style.cursor = 'wait';
-  imgBase.removeAttribute('src');
-  imgGainmap.removeAttribute('src');
-  imgAlt.removeAttribute('src');
-  metaEl.innerHTML = '';
-  ;(document.getElementById('dim-d-base')    as HTMLElement).textContent = '';
-  ;(document.getElementById('dim-d-gainmap') as HTMLElement).textContent = '';
-  ;(document.getElementById('dim-d-alt')     as HTMLElement).textContent = '';
-
-  try {
-    const bytes = await fileToUint8Array(file);
-    const { baseJpegBytes, gainmapJpegBytes, metadata } = unpackGainmapJpeg(bytes);
-
-    const baseBlob = new Blob([baseJpegBytes],    { type: 'image/jpeg' });
-    const gainBlob = new Blob([gainmapJpegBytes], { type: 'image/jpeg' });
-
-    const [baseBitmap, gainBitmap] = await Promise.all([blobToImage(baseBlob), blobToImage(gainBlob)]);
-    const baseCanvas    = imageBitmapToCanvas(baseBitmap);
-    const gainMapCanvas = imageBitmapToCanvas(gainBitmap);
-    const altCanvas     = reconstructAlternateFromGainMap({ baseCanvas, gainMapCanvas, metadata });
-    const altBlob       = await canvasToJpegBlob(altCanvas, 90);
-
-    decoded = { baseBlob, gainBlob, altBlob, baseCanvas };
-
-    imgBase.src    = baseCanvas.toDataURL('image/png');
-    imgGainmap.src = gainMapCanvas.toDataURL('image/png');
-    imgAlt.src     = altCanvas.toDataURL('image/png');
-    ;(document.getElementById('dim-d-base')    as HTMLElement).textContent = `${baseCanvas.width} × ${baseCanvas.height}`;
-    ;(document.getElementById('dim-d-gainmap') as HTMLElement).textContent = `${gainMapCanvas.width} × ${gainMapCanvas.height}`;
-    ;(document.getElementById('dim-d-alt')     as HTMLElement).textContent = `${altCanvas.width} × ${altCanvas.height}`;
-
-    const dRow = (k: string, v: string) =>
-      `<div class="meta-dl-row"><span class="mk">${k}</span><span class="mv">${v}</span></div>`;
-    metaEl.innerHTML = [
-      dRow('文件', file.name),
-      dRow('大小', `${(file.size / 1024).toFixed(1)} KB`),
-      `<hr class="meta-dl-sep" />`,
-      dRow('Gamma',     metadata.gamma.map((x: number) => x.toFixed(3)).join(', ')),
-      dRow('OffsetSdr', metadata.offsetSdr.map((x: number) => x.toFixed(3)).join(', ')),
-      dRow('OffsetHdr', metadata.offsetHdr.map((x: number) => x.toFixed(3)).join(', ')),
-      dRow('minBoost',  metadata.minContentBoost.map((x: number) => x.toFixed(3)).join(', ')),
-      dRow('maxBoost',  metadata.maxContentBoost.map((x: number) => x.toFixed(3)).join(', ')),
-      dRow('useBaseCG', String(metadata.useBaseColorSpace)),
-    ].join('');
-
-    setExports(true);
-    statusEl.textContent = '✓ 解码成功';
-    statusEl.className   = 'status-bar ok';
-    scrollIntoViewIfNeeded(workspace);
-  } catch (err: any) {
-    // 尝试将文件作为普通 JPEG 显示（有效图片但无增益图）
-    try {
-      const bm = await blobToImage(file);
-      const cv = imageBitmapToCanvas(bm);
-      imgBase.src = cv.toDataURL('image/png');
-      ;(document.getElementById('dim-d-base') as HTMLElement).textContent = `${cv.width} × ${cv.height}`;
-      decoded = { baseBlob: file, gainBlob: new Blob(), altBlob: new Blob(), baseCanvas: cv };
-      btnSaveBase.disabled = false;
-      statusEl.textContent = '未找到增益图，仅显示原始图像';
-      statusEl.className   = 'status-bar';
-      scrollIntoViewIfNeeded(workspace);
-    } catch {
-      statusEl.textContent = `解码失败：${err?.message ?? err}`;
-      statusEl.className   = 'status-bar error';
-    }
-  } finally {
-    sidebarDrop.innerHTML = sidebarDropOrigHTML;
-    sidebarDrop.style.pointerEvents = '';
-    sidebarDrop.style.cursor = '';
+  /* ── State ─────────────────────────────────────────────── */
+  interface Decoded {
+    baseBlob:    Blob;
+    gainBlob:    Blob;
+    altBlob:     Blob;
+    baseCanvas:  HTMLCanvasElement;
   }
+
+  let decoded: Decoded | null = null;
+  let _sourceStem = 'decoded';
+
+  /* ── Refs ──────────────────────────────────────────────── */
+  const imgBase    = document.getElementById('img-base')    as HTMLImageElement;
+  const imgGainmap = document.getElementById('img-gainmap') as HTMLImageElement;
+  const imgAlt     = document.getElementById('img-alt')     as HTMLImageElement;
+  const statusEl   = document.getElementById('decode-status')!;
+  const metaEl     = document.getElementById('decode-meta')!;
+
+  const btnSaveBase    = document.getElementById('btn-save-base')    as HTMLButtonElement;
+  const btnSaveGainmap = document.getElementById('btn-save-gainmap') as HTMLButtonElement;
+  const btnSaveAlt     = document.getElementById('btn-save-alt')     as HTMLButtonElement;
+
+  function setExports(on: boolean) {
+    btnSaveBase.disabled    = !on;
+    btnSaveGainmap.disabled = !on;
+    btnSaveAlt.disabled     = !on;
+  }
+  setExports(false);
+
+  // 图片预览（灯箱）
+  const _decodeImgItems = [
+    { el: imgBase,    label: '基础图' },
+    { el: imgAlt,     label: '合成图' },
+    { el: imgGainmap, label: '增益图' },
+  ];
+  _decodeImgItems.forEach(({ el, label }) => {
+    el.style.cursor = 'zoom-in';
+    el.addEventListener('click', () => {
+      if (!el.getAttribute('src')) return;
+      openLightbox({ src: el.src, label });
+    });
+  });
+
+  /* ── Open / drop ───────────────────────────────────────── */
+  // 侧栏拖放区：点击 + 拖入
+  const sidebarDrop = document.getElementById('sidebar-drop')!;
+  sidebarDrop.addEventListener('click', () => fileInput.click());
+  sidebarDrop.addEventListener('dragover', e => { e.preventDefault(); sidebarDrop.classList.add('drag-over'); });
+  sidebarDrop.addEventListener('dragleave', () => sidebarDrop.classList.remove('drag-over'));
+  sidebarDrop.addEventListener('drop', e => {
+    e.preventDefault(); sidebarDrop.classList.remove('drag-over');
+    const f = (e as DragEvent).dataTransfer?.files?.[0];
+    if (f) processFile(f);
+  });
+  const sidebarDropOrigHTML = sidebarDrop.innerHTML;
+
+  fileInput.addEventListener('change', () => {
+    const f = fileInput.files?.[0];
+    if (f) processFile(f);
+  });
+
+  const workspace = document.getElementById('decode-workspace')!;
+  workspace.addEventListener('dragover', e => { e.preventDefault(); workspace.style.borderColor = 'var(--accent)'; });
+  workspace.addEventListener('dragleave', () => { workspace.style.borderColor = ''; });
+  workspace.addEventListener('drop', e => {
+    e.preventDefault(); workspace.style.borderColor = '';
+    const f = (e as DragEvent).dataTransfer?.files?.[0];
+    if (f) processFile(f);
+  });
+
+  /* ── Decode ────────────────────────────────────────────── */
+  async function processFile(file: File) {
+    _sourceStem = file.name.replace(/\.[^.]+$/, '');
+    statusEl.textContent = '';
+    statusEl.className   = 'status-bar';
+    setExports(false);
+    // 解码期间在侧栏拖放框内显示旋转图标
+    sidebarDrop.innerHTML = `<svg class="spin-svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="9" stroke-opacity=".25"/><path d="M12 3a9 9 0 019 9" stroke-linecap="round"/></svg><span>解码中…</span>`;
+    sidebarDrop.style.pointerEvents = 'none';
+    sidebarDrop.style.cursor = 'wait';
+    imgBase.removeAttribute('src');
+    imgGainmap.removeAttribute('src');
+    imgAlt.removeAttribute('src');
+    metaEl.innerHTML = '';
+    ;(document.getElementById('dim-d-base')    as HTMLElement).textContent = '';
+    ;(document.getElementById('dim-d-gainmap') as HTMLElement).textContent = '';
+    ;(document.getElementById('dim-d-alt')     as HTMLElement).textContent = '';
+
+    try {
+      const bytes = await fileToUint8Array(file);
+      const { baseJpegBytes, gainmapJpegBytes, metadata } = unpackGainmapJpeg(bytes);
+
+      const baseBlob = new Blob([baseJpegBytes],    { type: 'image/jpeg' });
+      const gainBlob = new Blob([gainmapJpegBytes], { type: 'image/jpeg' });
+
+      const [baseBitmap, gainBitmap] = await Promise.all([blobToImage(baseBlob), blobToImage(gainBlob)]);
+      const baseCanvas    = imageBitmapToCanvas(baseBitmap);
+      const gainMapCanvas = imageBitmapToCanvas(gainBitmap);
+      const altCanvas     = reconstructAlternateFromGainMap({ baseCanvas, gainMapCanvas, metadata });
+      const altBlob       = await canvasToJpegBlob(altCanvas, 90);
+
+      decoded = { baseBlob, gainBlob, altBlob, baseCanvas };
+
+      imgBase.src    = baseCanvas.toDataURL('image/png');
+      imgGainmap.src = gainMapCanvas.toDataURL('image/png');
+      imgAlt.src     = altCanvas.toDataURL('image/png');
+      ;(document.getElementById('dim-d-base')    as HTMLElement).textContent = `${baseCanvas.width} × ${baseCanvas.height}`;
+      ;(document.getElementById('dim-d-gainmap') as HTMLElement).textContent = `${gainMapCanvas.width} × ${gainMapCanvas.height}`;
+      ;(document.getElementById('dim-d-alt')     as HTMLElement).textContent = `${altCanvas.width} × ${altCanvas.height}`;
+
+      const dRow = (k: string, v: string) =>
+        `<div class="meta-dl-row"><span class="mk">${k}</span><span class="mv">${v}</span></div>`;
+      metaEl.innerHTML = [
+        dRow('文件', file.name),
+        dRow('大小', `${(file.size / 1024).toFixed(1)} KB`),
+        `<hr class="meta-dl-sep" />`,
+        dRow('Gamma',     metadata.gamma.map((x: number) => x.toFixed(3)).join(', ')),
+        dRow('OffsetSdr', metadata.offsetSdr.map((x: number) => x.toFixed(3)).join(', ')),
+        dRow('OffsetHdr', metadata.offsetHdr.map((x: number) => x.toFixed(3)).join(', ')),
+        dRow('minBoost',  metadata.minContentBoost.map((x: number) => x.toFixed(3)).join(', ')),
+        dRow('maxBoost',  metadata.maxContentBoost.map((x: number) => x.toFixed(3)).join(', ')),
+        dRow('useBaseCG', String(metadata.useBaseColorSpace)),
+      ].join('');
+
+      setExports(true);
+      statusEl.textContent = '✓ 解码成功';
+      statusEl.className   = 'status-bar ok';
+      scrollIntoViewIfNeeded(workspace);
+    } catch (err: any) {
+      // 尝试将文件作为普通 JPEG 显示（有效图片但无增益图）
+      try {
+        const bm = await blobToImage(file);
+        const cv = imageBitmapToCanvas(bm);
+        imgBase.src = cv.toDataURL('image/png');
+        ;(document.getElementById('dim-d-base') as HTMLElement).textContent = `${cv.width} × ${cv.height}`;
+        decoded = { baseBlob: file, gainBlob: new Blob(), altBlob: new Blob(), baseCanvas: cv };
+        btnSaveBase.disabled = false;
+        statusEl.textContent = '未找到增益图，仅显示原始图像';
+        statusEl.className   = 'status-bar';
+        scrollIntoViewIfNeeded(workspace);
+      } catch {
+        statusEl.textContent = `解码失败：${err?.message ?? err}`;
+        statusEl.className   = 'status-bar error';
+      }
+    } finally {
+      sidebarDrop.innerHTML = sidebarDropOrigHTML;
+      sidebarDrop.style.pointerEvents = '';
+      sidebarDrop.style.cursor = '';
+    }
+  }
+
+  /* ── Save ──────────────────────────────────────────────── */
+  btnSaveBase.addEventListener('click',    (e) => { e.stopPropagation(); decoded && downloadBlob(decoded.baseBlob,    `${_sourceStem}_base.jpg`); });
+  btnSaveGainmap.addEventListener('click', (e) => { e.stopPropagation(); decoded && downloadBlob(decoded.gainBlob,    `${_sourceStem}_gainmap.jpg`); });
+  btnSaveAlt.addEventListener('click',     (e) => { e.stopPropagation(); decoded && downloadBlob(decoded.altBlob,     `${_sourceStem}_alternate.jpg`); });
 }
 
-/* ── Helpers ───────────────────────────────────────────── */
-function scrollIntoViewIfNeeded(el: Element) {
-  const navH = 52 + 8; // navbar height + padding
-  const rect = el.getBoundingClientRect();
-  const inView = rect.top >= navH && rect.bottom <= window.innerHeight;
-  if (!inView) window.scrollTo({ top: rect.top + window.scrollY - navH, behavior: 'smooth' });
-}
-
-/* ── Save ──────────────────────────────────────────────── */
-btnSaveBase.addEventListener('click',    (e) => { e.stopPropagation(); decoded && downloadBlob(decoded.baseBlob,    `${_sourceStem}_base.jpg`); });
-btnSaveGainmap.addEventListener('click', (e) => { e.stopPropagation(); decoded && downloadBlob(decoded.gainBlob,    `${_sourceStem}_gainmap.jpg`); });
-btnSaveAlt.addEventListener('click',     (e) => { e.stopPropagation(); decoded && downloadBlob(decoded.altBlob,     `${_sourceStem}_alternate.jpg`); });
+// 在页面加载和每次导航后初始化
+document.addEventListener('astro:page-load', initDecodePage);
 </script>
 
 <style>
@@ -264,6 +280,10 @@ btnSaveAlt.addEventListener('click',     (e) => { e.stopPropagation(); decoded &
     display: flex;
     align-items: center;
     gap: 0.4rem;
+  }
+  /* 解码完成后图片就位，隐藏占位文字 */
+  #decode-workspace .img-wrap:has(img[src]) .zone-placeholder {
+    display: none;
   }
   /* 侧栏拖放区 */
   .sidebar-drop-zone {
@@ -292,51 +312,23 @@ btnSaveAlt.addEventListener('click',     (e) => { e.stopPropagation(); decoded &
   }
   .sidebar-drop-zone:hover svg,
   .sidebar-drop-zone.drag-over svg { opacity: .75; transform: translateY(-3px) scale(1.08); }
-  /* 所有展示框均禁用 hover 动画 */
-  .static-zone { cursor: default !important; }
-  .static-zone:hover {
-    border-color: var(--border) !important;
-    background: var(--bg) !important;
-  }
-  .figcap-btn {
-    font-size: 0.78rem;
-    padding: 0.15rem 0.5rem;
-    border-radius: 4px;
-    border: 1px solid var(--border);
-    background: var(--bg-input);
-    color: var(--text);
-    cursor: pointer;
-    transition: background 0.15s, border-color 0.15s;
-  }
-  .figcap-btn:hover {
-    border-color: var(--accent);
-    background: var(--accent-bg);
-    color: var(--accent);
-  }
-  .save-btn {
-    display: flex;
-    align-items: center;
-    padding: 0.2rem 0.4rem;
-    background: var(--accent);
-    color: #fff;
-    border: 1px solid var(--accent);
-    border-radius: 4px;
-    cursor: pointer;
-    transition: background 0.15s;
-  }
-  .save-btn:disabled {
-    opacity: 0.35;
-    cursor: not-allowed;
-  }
-  .save-btn:not(:disabled):hover {
-    background: var(--accent-hv, var(--accent));
-    border-color: var(--accent-hv, var(--accent));
-  }
-  img:not([src]),
-  img[src=""] {
-    display: none;
-  }
   /* spinner inside placeholder during decode */
-  @keyframes spin { to { transform: rotate(360deg); } }
-  .spin-svg { animation: spin .8s linear infinite; opacity: .5; }
+  .spin-svg { opacity: .5; }
+
+  @media (max-width: 640px) {
+    .sidebar-drop-zone {
+      padding: 24px 12px;
+      min-height: 110px;
+    }
+  }
+
+  @media (max-width: 480px) {
+    .sidebar-drop-zone {
+      padding: 20px 10px;
+      min-height: 100px;
+    }
+    .sidebar-drop-zone strong {
+      font-size: 0.88rem;
+    }
+  }
 </style>

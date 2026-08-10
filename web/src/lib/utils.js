@@ -70,3 +70,10 @@ export function imageBitmapToCanvas(bitmap) {
   ctx.drawImage(bitmap, 0, 0);
   return canvas;
 }
+
+export function scrollIntoViewIfNeeded(el) {
+  const navH = 52 + 8; // navbar height + padding
+  const rect = el.getBoundingClientRect();
+  const inView = rect.top >= navH && rect.bottom <= window.innerHeight;
+  if (!inView) window.scrollTo({ top: rect.top + window.scrollY - navH, behavior: 'smooth' });
+}

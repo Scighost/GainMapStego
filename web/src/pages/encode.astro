@@ -2,84 +2,92 @@
 import BaseLayout from '../layouts/BaseLayout.astro';
 ---
 <BaseLayout title="合成" toolPage>
-  <div class="tool-page">
+  <div class="tool-page settings-after">
 
     <!-- ── Sidebar ─────────────────────────────────────── -->
     <aside class="sidebar">
-      <h2>合成选项</h2>
-
-      <hr />
-
-      <div class="section-label">图像</div>
-
-      <div class="form-row">
-        <div class="form-label">
-          图像质量
-          <span id="v-quality">90</span>
+      <!-- 移动端以底部面板形式展示的合成选项 -->
+      <div id="settings-body">
+        <div class="sheet-handle"></div>
+        <div class="sheet-head">
+          <h2>合成选项</h2>
         </div>
-        <input id="image-quality" type="range" min="1" max="100" value="90" />
-      </div>
 
-      <div class="form-row">
-        <div class="form-label">
-          输出分辨率
-          <span id="v-scale">100%</span>
-        </div>
-        <input id="image-scale" type="range" min="0.1" max="1" step="0.01" value="1" />
-      </div>
+        <div class="section-label">图像参数</div>
 
-      <div class="form-trio">
-        <div class="form-trio-item">
-          <div class="form-label">背景色</div>
-          <input id="bg-color" type="color" value="#ffffff" class="color-swatch" />
+        <div class="form-row">
+          <div class="form-label">
+            图像质量
+            <span id="v-quality">90</span>
+          </div>
+          <input id="image-quality" type="range" min="1" max="100" value="90" />
         </div>
-        <div class="form-trio-item">
-          <div class="form-label">完整展示</div>
-          <div class="seg-ctrl">
-            <label class="seg-opt"><input type="radio" name="target-display" value="base" checked /><span>表图</span></label>
-            <label class="seg-opt"><input type="radio" name="target-display" value="alternate" /><span>里图</span></label>
+
+        <div class="form-row">
+          <div class="form-label">
+            输出分辨率
+            <span id="v-scale">100%</span>
+          </div>
+          <input id="image-scale" type="range" min="0.1" max="1" step="0.01" value="1" />
+        </div>
+
+        <div class="form-trio">
+          <div class="form-trio-item">
+            <div class="form-label">背景色</div>
+            <input id="bg-color" type="color" value="#ffffff" class="color-swatch" />
+          </div>
+          <div class="form-trio-item">
+            <div class="form-label">完整展示</div>
+            <div class="seg-ctrl">
+              <label class="seg-opt"><input type="radio" name="target-display" value="base" checked /><span>表图</span></label>
+              <label class="seg-opt"><input type="radio" name="target-display" value="alternate" /><span>里图</span></label>
+            </div>
+          </div>
+          <div class="form-trio-item">
+            <div class="form-label">缩放模式</div>
+            <div class="seg-ctrl">
+              <label class="seg-opt"><input type="radio" name="scale-mode" value="fit" checked /><span>适应</span></label>
+              <label class="seg-opt"><input type="radio" name="scale-mode" value="fill" /><span>填充</span></label>
+            </div>
           </div>
         </div>
-        <div class="form-trio-item">
-          <div class="form-label">缩放模式</div>
-          <div class="seg-ctrl">
-            <label class="seg-opt"><input type="radio" name="scale-mode" value="fit" checked /><span>适应</span></label>
-            <label class="seg-opt"><input type="radio" name="scale-mode" value="fill" /><span>填充</span></label>
+
+        <div class="section-label">增益图参数</div>
+
+        <div class="form-row">
+          <div class="form-label">
+            Gamma
+            <span id="v-gamma">1.0</span>
           </div>
+          <input id="gainmap-gamma" type="range" min="0.1" max="2" step="0.1" value="1" />
+        </div>
+
+        <div class="form-row">
+          <div class="form-label">
+            Offset
+            <span id="v-offset">1.0</span>
+          </div>
+          <input id="gainmap-offset" type="range" min="0.1" max="2" step="0.1" value="1" />
         </div>
       </div>
-
-      <hr />
-
-      <div class="section-label">增益图参数</div>
-
-      <div class="form-row">
-        <div class="form-label">
-          Gamma
-          <span id="v-gamma">1.0</span>
-        </div>
-        <input id="gainmap-gamma" type="range" min="0.1" max="2" step="0.1" value="1" />
-      </div>
-
-      <div class="form-row">
-        <div class="form-label">
-          Offset
-          <span id="v-offset">1.0</span>
-        </div>
-        <input id="gainmap-offset" type="range" min="0.1" max="2" step="0.1" value="1" />
-      </div>
-
-      <hr />
 
       <div class="btn-group">
         <button id="btn-encode" class="btn-primary">合成</button>
         <button id="btn-cancel" style="display:none">取消</button>
         <button id="btn-reset">制作新图片</button>
+        <button id="btn-settings" class="btn-settings" aria-label="打开合成选项" aria-expanded="false">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="3"/>
+            <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 11-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 110-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 114 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 110 4h-.09a1.65 1.65 0 00-1.51 1z"/>
+          </svg>
+        </button>
       </div>
 
-      <div id="encode-status" class="status-bar"></div>
-
-      <div id="result-meta" class="meta-dl-wrap" style="display:none"></div>
+      <!-- 桌面端信息框（按钮下方，无外框） -->
+      <div id="result-meta-desktop" class="meta-dl-wrap" style="display:none">
+        <div id="encode-status-desktop" class="status-bar"></div>
+        <div id="result-rows-desktop"></div>
+      </div>
 
       <input id="file-base" type="file" accept="image/*" hidden />
       <input id="file-alt"  type="file" accept="image/*" hidden />
@@ -115,25 +123,36 @@ import BaseLayout from '../layouts/BaseLayout.astro';
         </div>
       </figure>
 
-      <div class="result-box">
-        <div class="result-toolbar">
-          <button id="result-show-hdr"    class="active">预览</button>
-          <button id="result-show-base">表图</button>
-          <button id="result-show-alt">里图</button>
-          <button id="result-show-gainmap">增益图</button>
-          <button id="btn-save-hdr" class="save-btn" disabled title="保存增益图 JPG">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
-              <polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
-            </svg>
-            保存
-          </button>
+      <div class="result-pane">
+        <div class="result-box" id="result-box">
+          <div class="result-toolbar">
+            <button id="result-show-hdr"    class="active">预览</button>
+            <button id="result-show-base">表图</button>
+            <button id="result-show-alt">里图</button>
+            <button id="result-show-gainmap">增益图</button>
+            <button id="btn-save-hdr" class="save-btn" disabled title="保存增益图 JPG">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
+                <polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+              </svg>
+              保存
+            </button>
+          </div>
+          <div class="img-wrap">
+            <img id="preview-result" alt="结果预览" />
+            <div class="result-placeholder" id="result-placeholder">合成结果将在此处显示</div>
+          </div>
         </div>
-        <div class="img-wrap">
-          <img id="preview-result" alt="结果预览" />
+
+        <div id="result-meta" class="meta-dl-wrap" style="display:none">
+          <div id="encode-status" class="status-bar"></div>
+          <div id="result-rows"></div>
         </div>
       </div>
     </section>
+
+    <!-- 移动端设置面板的背景遮罩 -->
+    <div id="settings-backdrop" class="settings-backdrop"></div>
 
   </div>
 </BaseLayout>
@@ -141,275 +160,369 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 <script>
 import { buildGainMap, composeBaseAndAlternate } from '../lib/image-processing.js';
 import { createIsoMetadata, packGainmapJpeg } from '../lib/iso21496.js';
-import { blobToImage, canvasToJpegBlob, downloadBlob, fileSizeText } from '../lib/utils.js';
+import { blobToImage, canvasToJpegBlob, downloadBlob, fileSizeText, scrollIntoViewIfNeeded } from '../lib/utils.js';
 import { openLightbox } from '../lib/lightbox.js';
 
-/* ── State ─────────────────────────────────────────────── */
-interface Encoded {
-  baseCanvas: HTMLCanvasElement;
-  alternateCanvas: HTMLCanvasElement;
-  gainMapCanvas: HTMLCanvasElement;
-  gainmapHdrBlob: Blob;
-  baseBlob: Blob;
-  gainBlob: Blob;
-  altBlob: Blob;
-}
+function initEncodePage() {
+  const el = document.getElementById('file-base');
+  if (!el) return; // 不在编码页面，直接返回
 
-let baseBitmap: ImageBitmap | null = null;
-let altBitmap:  ImageBitmap | null = null;
-let encoded:    Encoded | null     = null;
-
-/* ── Element refs ──────────────────────────────────────── */
-const $  = (id: string) => document.getElementById(id)!;
-const $i = (id: string) => $( id) as HTMLInputElement;
-
-const fileBase    = $i('file-base');
-const fileAlt     = $i('file-alt');
-const previewBase = $('preview-base') as HTMLImageElement;
-const previewAlt  = $('preview-alt')  as HTMLImageElement;
-const previewResult = $('preview-result') as HTMLImageElement;
-let _hdrObjectUrl: string | null = null;
-const resultMeta  = $('result-meta') as HTMLElement;
-const statusEl    = $('encode-status');
-const phBase      = $('ph-base');
-const phAlt       = $('ph-alt');
-
-/* ── Meta row helper ───────────────────────────────────────── */
-const row = (k: string, v: string) =>
-  `<div class="meta-dl-row"><span class="mk">${k}</span><span class="mv">${v}</span></div>`;
-
-/* ── Label sync ────────────────────────────────────────── */
-function syncLabels() {
-  $('v-quality').textContent = $i('image-quality').value;
-  $('v-scale').textContent   = `${Math.round(+$i('image-scale').value * 100)}%`;
-  $('v-gamma').textContent   = (+$i('gainmap-gamma').value).toFixed(1);
-  $('v-offset').textContent  = (+$i('gainmap-offset').value).toFixed(1);
-}
-['image-quality','image-scale','gainmap-gamma','gainmap-offset'].forEach(id =>
-  $(id).addEventListener('input', syncLabels)
-);
-syncLabels();
-
-/* ── Save button ───────────────────────────────────────── */
-const btnSaveHdr  = $('btn-save-hdr') as HTMLButtonElement;
-const btnEncode   = $('btn-encode')   as HTMLButtonElement;
-const btnCancel   = $('btn-cancel')   as HTMLButtonElement;
-function setExports(on: boolean) { btnSaveHdr.disabled = !on; }
-setExports(false);
-
-let _isEncoding  = false;
-let _cancelled   = false;
-function setEncoding(on: boolean) {
-  _isEncoding = on;
-  if (on) {
-    _cancelled = false;
-    btnEncode.textContent = '合成中…';
-    btnEncode.classList.add('btn-running');
-    btnEncode.disabled = true;
-    btnCancel.style.display = '';
-  } else {
-    btnEncode.textContent = '合成';
-    btnEncode.classList.remove('btn-running');
-    btnEncode.disabled = false;
-    btnCancel.style.display = 'none';
+  /* ── State ─────────────────────────────────────────────── */
+  interface Encoded {
+    baseCanvas: HTMLCanvasElement;
+    alternateCanvas: HTMLCanvasElement;
+    gainMapCanvas: HTMLCanvasElement;
+    gainmapHdrBlob: Blob;
+    baseBlob: Blob;
+    gainBlob: Blob;
+    altBlob: Blob;
   }
-}
-btnCancel.addEventListener('click', () => { _cancelled = true; setEncoding(false); statusEl.textContent = '已取消'; });
 
-/* ── Image loading ─────────────────────────────────────── */
-async function loadImage(file: File, target: 'base' | 'alt') {
-  const bm  = await blobToImage(file);
-  const url = URL.createObjectURL(file);
-  if (target === 'base') {
-    baseBitmap       = bm;
-    previewBase.src  = url;
-    phBase.style.display = 'none';
-    ($('dim-base') as HTMLElement).textContent = `${bm.width} × ${bm.height}`;
-  } else {
-    altBitmap       = bm;
-    previewAlt.src  = url;
-    phAlt.style.display = 'none';
-    ($('dim-alt') as HTMLElement).textContent = `${bm.width} × ${bm.height}`;
+  let baseBitmap: ImageBitmap | null = null;
+  let altBitmap:  ImageBitmap | null = null;
+  let encoded:    Encoded | null     = null;
+
+  /* ── Element refs ──────────────────────────────────────── */
+  const $  = (id: string) => document.getElementById(id)!;
+  const $i = (id: string) => $( id) as HTMLInputElement;
+
+  const fileBase    = $i('file-base');
+  const fileAlt     = $i('file-alt');
+  const previewBase = $('preview-base') as HTMLImageElement;
+  const previewAlt  = $('preview-alt')  as HTMLImageElement;
+  const previewResult = $('preview-result') as HTMLImageElement;
+  let _hdrObjectUrl: string | null = null;
+  /* 信息框双实例：桌面端在侧栏按钮下方，移动端在合成图框下方 */
+  const metaMobile   = $('result-meta');
+  const rowsMobile   = $('result-rows');
+  const statusMobile = $('encode-status');
+  const metaDesktop   = $('result-meta-desktop');
+  const rowsDesktop   = $('result-rows-desktop');
+  const statusDesktop = $('encode-status-desktop');
+
+  const resultBox   = $('result-box');
+  const resultPane  = document.querySelector<HTMLElement>('.result-pane')!;
+  const toolPage    = document.querySelector<HTMLElement>('.tool-page.settings-after')!;
+  const phBase      = $('ph-base');
+  const phAlt       = $('ph-alt');
+
+  /* 结果面板显示状态：同时标记工具页，用于追加底部清除区 */
+  function setPaneVisible(on: boolean) {
+    resultPane.classList.toggle('show', on);
+    toolPage.classList.toggle('pane-open', on);
   }
-}
 
-/* ── Drop zones ────────────────────────────────────────── */
-function bindDrop(zoneId: string, target: 'base' | 'alt') {
-  const zone = $(zoneId);
-  zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('drag-over'); });
-  zone.addEventListener('dragleave', () => zone.classList.remove('drag-over'));
-  zone.addEventListener('drop', async e => {
-    e.preventDefault(); zone.classList.remove('drag-over');
-    const f = (e as DragEvent).dataTransfer?.files?.[0];
-    if (f) await loadImage(f, target);
-  });
-  zone.addEventListener('click', () => (target === 'base' ? fileBase : fileAlt).click());
-}
-bindDrop('zone-base', 'base');
-bindDrop('zone-alt',  'alt');
-
-fileBase.addEventListener('change', async e => {
-  const f = (e.target as HTMLInputElement).files?.[0];
-  if (f) await loadImage(f, 'base');
-  fileBase.value = '';
-});
-fileAlt.addEventListener('change', async e => {
-  const f = (e.target as HTMLInputElement).files?.[0];
-  if (f) await loadImage(f, 'alt');
-  fileAlt.value = '';
-});
-
-$('btn-reset').addEventListener('click', () => {
-  baseBitmap = altBitmap = encoded = null;
-  previewBase.removeAttribute('src');
-  previewAlt.removeAttribute('src');
-  previewResult.removeAttribute('src');
-  fileBase.value = '';
-  fileAlt.value  = '';
-  if (_hdrObjectUrl) { URL.revokeObjectURL(_hdrObjectUrl); _hdrObjectUrl = null; }
-  resultMeta.innerHTML = '';
-  resultMeta.style.display = 'none';
-  statusEl.textContent     = '';
-  phBase.style.display     = '';
-  phAlt.style.display      = '';
-  ($('dim-base') as HTMLElement).textContent = '';
-  ($('dim-alt') as HTMLElement).textContent  = '';
-  setExports(false);
-});
-
-/* ── Result preview toggle ─────────────────────────────── */
-function showResult(kind: 'base' | 'alternate' | 'gainmap' | 'hdr') {
-  if (!encoded) return;
-  if (kind === 'hdr') {
-    previewResult.src = _hdrObjectUrl!;
-  } else {
-    const map = { base: encoded.baseCanvas, alternate: encoded.alternateCanvas, gainmap: encoded.gainMapCanvas };
-    previewResult.src = map[kind].toDataURL('image/png');
-  }
-  $('result-show-base').classList.toggle('active',    kind === 'base');
-  $('result-show-alt').classList.toggle('active',     kind === 'alternate');
-  $('result-show-gainmap').classList.toggle('active', kind === 'gainmap');
-  $('result-show-hdr').classList.toggle('active',     kind === 'hdr');
-}
-$('result-show-base').addEventListener('click',    () => showResult('base'));
-$('result-show-alt').addEventListener('click',     () => showResult('alternate'));
-$('result-show-gainmap').addEventListener('click', () => showResult('gainmap'));
-$('result-show-hdr').addEventListener('click',     () => showResult('hdr'));
-
-// 点击结果图片打开灯箱
-previewResult.style.cursor = 'zoom-in';
-previewResult.addEventListener('click', () => {
-  if (!encoded || !previewResult.getAttribute('src')) return;
-  // 以当前显示的 tab 为准，预览该张图
-  const activeBtn = document.querySelector('.result-toolbar button.active') as HTMLElement;
-  const labelMap: Record<string, string> = {
-    'result-show-hdr':     '预览',
-    'result-show-base':    '表图',
-    'result-show-alt':     '里图',
-    'result-show-gainmap': '增益图',
-  };
-  const label = activeBtn ? (labelMap[activeBtn.id] ?? '预览') : '预览';
-  openLightbox({ src: previewResult.src, label });
-});
-
-/* ── Encode ────────────────────────────────────────────── */
-$('btn-encode').addEventListener('click', async () => {
-  if (_isEncoding) return;
-  if (!altBitmap) {
-    statusEl.textContent = '请先拖入或选择里图（必需项）';
-    statusEl.className   = 'status-bar error';
-    return;
-  }
-  setEncoding(true);
-  statusEl.textContent = '合成中…';
-  statusEl.className   = 'status-bar';
-  // 让浏览器先完成一帧重绘，避免状态提示被重计算阻塞
-  await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
-  try {
-    const gamma  = +$i('gainmap-gamma').value;
-    const offset = +$i('gainmap-offset').value;
-
-    const yieldFrame = () => new Promise<void>(r => requestAnimationFrame(() => requestAnimationFrame(r)));
-
-    statusEl.textContent = '正在缩放图像…';
-    await yieldFrame();
-    const { baseCanvas, alternateCanvas, outW, outH } = composeBaseAndAlternate({
-      baseBitmap,
-      alternateBitmap: altBitmap,
-      targetDisplay: (document.querySelector('input[name="target-display"]:checked') as HTMLInputElement)?.value ?? 'base',
-      imageScale: +$i('image-scale').value,
-      scaleMode: (document.querySelector('input[name="scale-mode"]:checked') as HTMLInputElement)?.value ?? 'fit',
-      backgroundColor: $i('bg-color').value,
-    });
-    if (_cancelled) return;
-
-    statusEl.textContent = '正在计算增益图…';
-    await yieldFrame();
-    const gain = buildGainMap({ baseCanvas, alternateCanvas, gamma, offset });
-    const meta = createIsoMetadata({
-      gamma: [gamma, gamma, gamma],
-      offsetSdr: [offset, offset, offset],
-      offsetHdr: [offset, offset, offset],
-      minContentBoost: gain.minContentBoost,
-      maxContentBoost: gain.maxContentBoost,
-      hdrCapacityMin: 1,
-      hdrCapacityMax: Math.max(...gain.maxContentBoost, 1.0001),
-      useBaseColorSpace: 1,
-    });
-    if (_cancelled) return;
-
-    statusEl.textContent = '正在编码 JPEG…';
-    await yieldFrame();
-    const quality = +$i('image-quality').value;
-    const [baseBlob, gainBlob] = await Promise.all([
-      canvasToJpegBlob(baseCanvas, quality),
-      canvasToJpegBlob(gain.gainMapCanvas, quality),
-    ]);
-    if (_cancelled) return;
-
-    statusEl.textContent = '正在打包 JPEG…';
-    await yieldFrame();
-    const baseBytes   = new Uint8Array(await baseBlob.arrayBuffer());
-    const gainBytes   = new Uint8Array(await gainBlob.arrayBuffer());
-    const hdrBytes    = packGainmapJpeg({ baseJpegBytes: baseBytes, gainmapJpegBytes: gainBytes, metadata: meta });
-    const altBlob     = await canvasToJpegBlob(alternateCanvas, quality);
-    if (_cancelled) return;
-
-    encoded = {
-      baseCanvas, alternateCanvas, gainMapCanvas: gain.gainMapCanvas,
-      gainmapHdrBlob: new Blob([hdrBytes], { type: 'image/jpeg' }),
-      baseBlob, gainBlob, altBlob,
-    };
-
-    resultMeta.innerHTML = [
-      row('分辨率', `${outW} × ${outH}`),
-      row('基础图', fileSizeText(baseBlob.size)),
-      row('增益图', fileSizeText(gainBlob.size)),
-      row('合成图', fileSizeText(encoded.gainmapHdrBlob.size)),
-      `<hr class="meta-dl-sep" />`,
-      row('minBoost', gain.minContentBoost.map((x: number) => x.toFixed(3)).join(', ')),
-      row('maxBoost', gain.maxContentBoost.map((x: number) => x.toFixed(3)).join(', ')),
-    ].join('');
-    resultMeta.style.display = '';
-
-    setExports(true);
-    if (_hdrObjectUrl) URL.revokeObjectURL(_hdrObjectUrl);
-    _hdrObjectUrl = URL.createObjectURL(encoded.gainmapHdrBlob);
-    showResult('hdr');
-    statusEl.textContent = '✓ 合成完成';
-    statusEl.className   = 'status-bar ok';
-  } catch (err: any) {
-    if (!_cancelled) {
-      statusEl.textContent = `合成失败：${err?.message ?? err}`;
-      statusEl.className   = 'status-bar error';
+  function setStatus(text: string, cls: string = '') {
+    for (const s of [statusMobile, statusDesktop]) {
+      s.textContent = text;
+      s.className = cls ? `status-bar ${cls}` : 'status-bar';
     }
-  } finally {
-    setEncoding(false);
   }
-});
+  function setRows(html: string) {
+    rowsMobile.innerHTML = html;
+    rowsDesktop.innerHTML = html;
+  }
+  function setMetaVisible(on: boolean) {
+    metaMobile.style.display = on ? '' : 'none';
+    metaDesktop.style.display = on ? '' : 'none';
+  }
+  function scrollStatusIntoView() {
+    if (window.matchMedia('(min-width: 901px)').matches) {
+      statusDesktop.scrollIntoView({ block: 'nearest' });
+    } else {
+      scrollIntoViewIfNeeded(statusMobile);
+    }
+  }
 
-/* ── Save ──────────────────────────────────────────────── */
-btnSaveHdr.addEventListener('click', () => encoded && downloadBlob(encoded.gainmapHdrBlob, `stego_${Math.floor(Date.now()/1000)}.jpg`));
+  /* ── 设置面板（移动端底部弹层） ─────────────────────────── */
+  const settingsBody     = $('settings-body');
+  const settingsBackdrop = $('settings-backdrop');
+  const btnSettings      = $('btn-settings') as HTMLButtonElement;
+
+  function setSettingsOpen(open: boolean) {
+    settingsBody.classList.toggle('open', open);
+    settingsBackdrop.classList.toggle('open', open);
+    btnSettings.setAttribute('aria-expanded', String(open));
+  }
+  function closeSettings() { setSettingsOpen(false); }
+  btnSettings.addEventListener('click', () => setSettingsOpen(!settingsBody.classList.contains('open')));
+  settingsBackdrop.addEventListener('click', closeSettings);
+
+  /* ── Meta row helper ───────────────────────────────────────── */
+  const row = (k: string, v: string) =>
+    `<div class="meta-dl-row"><span class="mk">${k}</span><span class="mv">${v}</span></div>`;
+
+  /* ── Label sync ────────────────────────────────────────── */
+  function syncLabels() {
+    $('v-quality').textContent = $i('image-quality').value;
+    $('v-scale').textContent   = `${Math.round(+$i('image-scale').value * 100)}%`;
+    $('v-gamma').textContent   = (+$i('gainmap-gamma').value).toFixed(1);
+    $('v-offset').textContent  = (+$i('gainmap-offset').value).toFixed(1);
+  }
+  ['image-quality','image-scale','gainmap-gamma','gainmap-offset'].forEach(id =>
+    $(id).addEventListener('input', syncLabels)
+  );
+  syncLabels();
+
+  /* ── Save button ───────────────────────────────────────── */
+  const btnSaveHdr  = $('btn-save-hdr') as HTMLButtonElement;
+  const btnEncode   = $('btn-encode')   as HTMLButtonElement;
+  const btnCancel   = $('btn-cancel')   as HTMLButtonElement;
+  function setExports(on: boolean) { btnSaveHdr.disabled = !on; }
+  setExports(false);
+
+  let _isEncoding  = false;
+  let _cancelled   = false;
+  function setEncoding(on: boolean) {
+    _isEncoding = on;
+    if (on) {
+      _cancelled = false;
+      btnEncode.textContent = '合成中…';
+      btnEncode.classList.add('btn-running');
+      btnEncode.disabled = true;
+      btnCancel.style.display = '';
+    } else {
+      btnEncode.textContent = '合成';
+      btnEncode.classList.remove('btn-running');
+      btnEncode.disabled = false;
+      btnCancel.style.display = 'none';
+    }
+  }
+  btnCancel.addEventListener('click', () => { _cancelled = true; setEncoding(false); setStatus('已取消'); });
+
+  /* ── Image loading ─────────────────────────────────────── */
+  async function loadImage(file: File, target: 'base' | 'alt') {
+    const bm  = await blobToImage(file);
+    const url = URL.createObjectURL(file);
+    if (target === 'base') {
+      baseBitmap       = bm;
+      previewBase.src  = url;
+      phBase.style.display = 'none';
+      ($('dim-base') as HTMLElement).textContent = `${bm.width} × ${bm.height}`;
+    } else {
+      altBitmap       = bm;
+      previewAlt.src  = url;
+      phAlt.style.display = 'none';
+      ($('dim-alt') as HTMLElement).textContent = `${bm.width} × ${bm.height}`;
+    }
+  }
+
+  /* ── Drop zones ────────────────────────────────────────── */
+  function bindDrop(zoneId: string, target: 'base' | 'alt') {
+    const zone = $(zoneId);
+    zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('drag-over'); });
+    zone.addEventListener('dragleave', () => zone.classList.remove('drag-over'));
+    zone.addEventListener('drop', async e => {
+      e.preventDefault(); zone.classList.remove('drag-over');
+      const f = (e as DragEvent).dataTransfer?.files?.[0];
+      if (f) await loadImage(f, target);
+    });
+    zone.addEventListener('click', () => (target === 'base' ? fileBase : fileAlt).click());
+  }
+  bindDrop('zone-base', 'base');
+  bindDrop('zone-alt',  'alt');
+
+  fileBase.addEventListener('change', async e => {
+    const f = (e.target as HTMLInputElement).files?.[0];
+    if (f) await loadImage(f, 'base');
+    fileBase.value = '';
+  });
+  fileAlt.addEventListener('change', async e => {
+    const f = (e.target as HTMLInputElement).files?.[0];
+    if (f) await loadImage(f, 'alt');
+    fileAlt.value = '';
+  });
+
+  $('btn-reset').addEventListener('click', () => {
+    baseBitmap = altBitmap = encoded = null;
+    previewBase.removeAttribute('src');
+    previewAlt.removeAttribute('src');
+    previewResult.removeAttribute('src');
+    fileBase.value = '';
+    fileAlt.value  = '';
+    if (_hdrObjectUrl) { URL.revokeObjectURL(_hdrObjectUrl); _hdrObjectUrl = null; }
+    setRows('');
+    setMetaVisible(false);
+    setPaneVisible(false);
+    setStatus('');
+    phBase.style.display     = '';
+    phAlt.style.display      = '';
+    ($('dim-base') as HTMLElement).textContent = '';
+    ($('dim-alt') as HTMLElement).textContent  = '';
+    const ph = document.getElementById('result-placeholder');
+    if (ph) ph.style.display = '';
+    setExports(false);
+    // 移动端：回到表图/里图位置
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  });
+
+  /* ── Result preview toggle ─────────────────────────────── */
+  function showResult(kind: 'base' | 'alternate' | 'gainmap' | 'hdr') {
+    if (!encoded) return;
+    if (kind === 'hdr') {
+      if (!_hdrObjectUrl) return;
+      previewResult.src = _hdrObjectUrl;
+    } else {
+      const map = { base: encoded.baseCanvas, alternate: encoded.alternateCanvas, gainmap: encoded.gainMapCanvas };
+      previewResult.src = map[kind].toDataURL('image/png');
+    }
+    $('result-show-base').classList.toggle('active',    kind === 'base');
+    $('result-show-alt').classList.toggle('active',     kind === 'alternate');
+    $('result-show-gainmap').classList.toggle('active', kind === 'gainmap');
+    $('result-show-hdr').classList.toggle('active',     kind === 'hdr');
+  }
+  $('result-show-base').addEventListener('click',    () => showResult('base'));
+  $('result-show-alt').addEventListener('click',     () => showResult('alternate'));
+  $('result-show-gainmap').addEventListener('click', () => showResult('gainmap'));
+  $('result-show-hdr').addEventListener('click',     () => showResult('hdr'));
+
+  // 点击结果图片打开灯箱
+  previewResult.style.cursor = 'zoom-in';
+  previewResult.addEventListener('click', () => {
+    if (!encoded || !previewResult.getAttribute('src')) return;
+    // 以当前显示的 tab 为准，预览该张图
+    const activeBtn = document.querySelector('.result-toolbar button.active') as HTMLElement;
+    const labelMap: Record<string, string> = {
+      'result-show-hdr':     '预览',
+      'result-show-base':    '表图',
+      'result-show-alt':     '里图',
+      'result-show-gainmap': '增益图',
+    };
+    const label = activeBtn ? (labelMap[activeBtn.id] ?? '预览') : '预览';
+    openLightbox({ src: previewResult.src, label });
+  });
+
+  /* ── Encode ────────────────────────────────────────────── */
+  $('btn-encode').addEventListener('click', async () => {
+    if (_isEncoding) return;
+    if (!altBitmap) {
+      setMetaVisible(true);
+      setPaneVisible(true);
+      setStatus('请先拖入或选择里图（必需项）', 'error');
+      scrollStatusIntoView();
+      return;
+    }
+    closeSettings();
+    setEncoding(true);
+    // 重新合成时先隐藏上一轮的结果
+    setPaneVisible(false);
+    setMetaVisible(false);
+    setStatus('合成中…');
+    // 让浏览器先完成一帧重绘，避免状态提示被重计算阻塞
+    await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+    try {
+      const gamma  = +$i('gainmap-gamma').value;
+      const offset = +$i('gainmap-offset').value;
+
+      const yieldFrame = () => new Promise<void>(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+
+      setStatus('正在缩放图像…');
+      await yieldFrame();
+      const { baseCanvas, alternateCanvas, outW, outH } = composeBaseAndAlternate({
+        baseBitmap,
+        alternateBitmap: altBitmap,
+        targetDisplay: (document.querySelector('input[name="target-display"]:checked') as HTMLInputElement)?.value ?? 'base',
+        imageScale: +$i('image-scale').value,
+        scaleMode: (document.querySelector('input[name="scale-mode"]:checked') as HTMLInputElement)?.value ?? 'fit',
+        backgroundColor: $i('bg-color').value,
+      });
+      if (_cancelled) return;
+
+      setStatus('正在计算增益图…');
+      await yieldFrame();
+      const gain = buildGainMap({ baseCanvas, alternateCanvas, gamma, offset });
+      const meta = createIsoMetadata({
+        gamma: [gamma, gamma, gamma],
+        offsetSdr: [offset, offset, offset],
+        offsetHdr: [offset, offset, offset],
+        minContentBoost: gain.minContentBoost,
+        maxContentBoost: gain.maxContentBoost,
+        hdrCapacityMin: 1,
+        hdrCapacityMax: Math.max(...gain.maxContentBoost, 1.0001),
+        useBaseColorSpace: 1,
+      });
+      if (_cancelled) return;
+
+      setStatus('正在编码 JPEG…');
+      await yieldFrame();
+      const quality = +$i('image-quality').value;
+      const [baseBlob, gainBlob] = await Promise.all([
+        canvasToJpegBlob(baseCanvas, quality),
+        canvasToJpegBlob(gain.gainMapCanvas, quality),
+      ]);
+      if (_cancelled) return;
+
+      setStatus('正在打包 JPEG…');
+      await yieldFrame();
+      const baseBytes   = new Uint8Array(await baseBlob.arrayBuffer());
+      const gainBytes   = new Uint8Array(await gainBlob.arrayBuffer());
+      const hdrBytes    = packGainmapJpeg({ baseJpegBytes: baseBytes, gainmapJpegBytes: gainBytes, metadata: meta });
+      const altBlob     = await canvasToJpegBlob(alternateCanvas, quality);
+      if (_cancelled) return;
+
+      encoded = {
+        baseCanvas, alternateCanvas, gainMapCanvas: gain.gainMapCanvas,
+        gainmapHdrBlob: new Blob([hdrBytes], { type: 'image/jpeg' }),
+        baseBlob, gainBlob, altBlob,
+      };
+
+      setRows([
+        row('分辨率', `${outW} × ${outH}`),
+        row('基础图', fileSizeText(baseBlob.size)),
+        row('增益图', fileSizeText(gainBlob.size)),
+        row('合成图', fileSizeText(encoded.gainmapHdrBlob.size)),
+      ].join(''));
+      setMetaVisible(true);
+      setPaneVisible(true);
+
+      setExports(true);
+      if (_hdrObjectUrl) URL.revokeObjectURL(_hdrObjectUrl);
+      _hdrObjectUrl = URL.createObjectURL(encoded.gainmapHdrBlob);
+      showResult('hdr');
+      // 隐藏结果区占位文字
+      const ph = document.getElementById('result-placeholder');
+      if (ph) ph.style.display = 'none';
+      setStatus('✓ 合成完成', 'ok');
+      // 移动端：滚动到合成图位置，让合成图框+信息框整体填满可用屏幕
+      // （scrollIntoViewIfNeeded 在框顶已可见时不会滚动，会导致停在表图/里图区）
+      if (window.matchMedia('(max-width: 900px)').matches) {
+        const top = resultPane.getBoundingClientRect().top + window.scrollY - 60;
+        window.scrollTo({ top: Math.max(0, top), behavior: 'smooth' });
+      } else {
+        scrollIntoViewIfNeeded(resultBox);
+      }
+    } catch (err: any) {
+      if (!_cancelled) {
+        setMetaVisible(true);
+        setPaneVisible(true);
+        setStatus(`合成失败：${err?.message ?? err}`, 'error');
+        scrollStatusIntoView();
+      }
+    } finally {
+      setEncoding(false);
+    }
+  });
+
+  /* ── Save ──────────────────────────────────────────────── */
+  btnSaveHdr.addEventListener('click', () => encoded && downloadBlob(encoded.gainmapHdrBlob, `stego_${Math.floor(Date.now()/1000)}.jpg`));
+
+  /* ── Cleanup on navigation ─────────────────────────────── */
+  return () => {
+    if (_hdrObjectUrl) {
+      URL.revokeObjectURL(_hdrObjectUrl);
+      _hdrObjectUrl = null;
+    }
+  };
+}
+
+// 在页面加载和每次导航后初始化
+let cleanupEncode: (() => void) | undefined;
+document.addEventListener('astro:page-load', () => {
+  cleanupEncode = initEncodePage();
+});
+document.addEventListener('astro:before-preparation', () => {
+  cleanupEncode?.();
+});
 </script>
 
 <style>
@@ -417,13 +530,13 @@ btnSaveHdr.addEventListener('click', () => encoded && downloadBlob(encoded.gainm
   .form-trio {
     display: grid;
     grid-template-columns: auto 1fr 1fr;
-    gap: 6px 10px;
+    gap: 8px 12px;
     align-items: end;
   }
   .form-trio-item {
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    gap: 6px;
   }
   .color-swatch {
     width: 36px;
@@ -434,31 +547,113 @@ btnSaveHdr.addEventListener('click', () => encoded && downloadBlob(encoded.gainm
     cursor: pointer;
     background: var(--bg-input);
   }
-  /* result toolbar save button */
+  /* result toolbar save button positioning */
   .result-toolbar .save-btn {
     margin-left: auto;
-    display: flex;
-    align-items: center;
-    gap: 0.3rem;
-    padding: 0.2rem 0.65rem;
-    font-size: 0.8rem;
-    background: var(--accent);
-    color: #fff;
-    border: 1px solid var(--accent);
-    border-radius: 4px;
-    cursor: pointer;
-    transition: background 0.15s;
   }
-  .result-toolbar .save-btn:disabled {
-    opacity: 0.35;
-    cursor: not-allowed;
-  }
-  .result-toolbar .save-btn:not(:disabled):hover {
-    background: var(--accent-hv, var(--accent));
-    border-color: var(--accent-hv, var(--accent));
-  }
-  img:not([src]),
-  img[src=""] {
+
+  /* ── 设置面板（桌面端隐藏移动端专属元素） ─────────────── */
+  .btn-settings {
     display: none;
+  }
+  .sheet-handle,
+  #settings-backdrop {
+    display: none;
+  }
+
+  /* Result box spans full width on mobile */
+  @media (max-width: 900px) {
+    .result-box {
+      grid-column: 1 / -1;
+    }
+
+    /* 设置按钮只在移动端底部操作栏显示 */
+    .btn-settings {
+      display: inline-flex;
+    }
+
+    /* 遮罩层 */
+    #settings-backdrop {
+      display: block;
+      position: fixed;
+      inset: 0;
+      z-index: 205;
+      background: rgba(0, 0, 0, .45);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity .2s ease;
+    }
+    #settings-backdrop.open {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    /* 底部设置面板 */
+    #settings-body {
+      position: fixed;
+      left: 10px;
+      right: 10px;
+      bottom: calc(72px + env(safe-area-inset-bottom));
+      z-index: 210;
+      max-height: min(72dvh, 560px);
+      overflow-y: auto;
+      overscroll-behavior: contain;
+      background: var(--bg-card);
+      border: 1px solid var(--border-lo);
+      border-radius: 18px;
+      box-shadow: 0 -8px 30px rgba(0, 0, 0, .35);
+      padding: 6px 14px calc(14px + env(safe-area-inset-bottom));
+      transform: translateY(calc(100% + 90px));
+      opacity: 0;
+      pointer-events: none;
+      transition: transform .28s cubic-bezier(.32, .72, .24, 1), opacity .22s ease;
+    }
+    #settings-body.open {
+      transform: none;
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .sheet-handle {
+      display: block;
+      width: 36px;
+      height: 4px;
+      border-radius: 2px;
+      background: var(--border);
+      margin: 4px auto 10px;
+    }
+
+    .sheet-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+    .sheet-head h2 {
+      margin: 0;
+    }
+  }
+
+  @media (max-width: 640px) {
+    .form-trio {
+      grid-template-columns: 1fr 1fr;
+      gap: 8px 10px;
+    }
+    .form-trio-item:first-child {
+      grid-column: 1 / -1;
+      flex-direction: row;
+      align-items: center;
+      gap: 10px;
+    }
+    .color-swatch {
+      width: 40px;
+      height: 32px;
+    }
+  }
+
+  @media (max-width: 380px) {
+    .form-trio {
+      grid-template-columns: 1fr;
+    }
   }
 </style>
