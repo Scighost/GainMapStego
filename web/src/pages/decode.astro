@@ -82,6 +82,13 @@ function initDecodePage() {
   let decoded: Decoded | null = null;
   let _sourceStem = 'decoded';
 
+  // 预览用的 object URL（base/gainmap/alt 的 JPEG blob），避免对整张图做 PNG 编码
+  let _previewUrls: string[] = [];
+  function revokePreviewUrls() {
+    for (const u of _previewUrls) URL.revokeObjectURL(u);
+    _previewUrls = [];
+  }
+
   /* ── Refs ──────────────────────────────────────────────── */
   const imgBase    = document.getElementById('img-base')    as HTMLImageElement;
   const imgGainmap = document.getElementById('img-gainmap') as HTMLImageElement;
@@ -157,6 +164,7 @@ function initDecodePage() {
   /* ── Decode ────────────────────────────────────────────── */
   async function processFile(file: File) {
     _sourceStem = file.name.replace(/\.[^.]+$/, '');
+    revokePreviewUrls();
     statusEl.textContent = '';
     statusEl.className   = 'status-bar';
     setExports(false);
@@ -188,9 +196,13 @@ function initDecodePage() {
 
       decoded = { baseBlob, gainBlob, altBlob, baseCanvas };
 
-      imgBase.src    = baseCanvas.toDataURL('image/png');
-      imgGainmap.src = gainMapCanvas.toDataURL('image/png');
-      imgAlt.src     = altCanvas.toDataURL('image/png');
+      const baseUrl = URL.createObjectURL(baseBlob);
+      const gainUrl = URL.createObjectURL(gainBlob);
+      const altUrl  = URL.createObjectURL(altBlob);
+      _previewUrls = [baseUrl, gainUrl, altUrl];
+      imgBase.src    = baseUrl;
+      imgGainmap.src = gainUrl;
+      imgAlt.src     = altUrl;
       pivot.setDims('base',    `${baseCanvas.width} × ${baseCanvas.height}`);
       pivot.setDims('gainmap', `${gainMapCanvas.width} × ${gainMapCanvas.height}`);
       pivot.setDims('alt',     `${altCanvas.width} × ${altCanvas.height}`);
@@ -227,7 +239,9 @@ function initDecodePage() {
       try {
         const bm = await blobToImage(file);
         const cv = imageBitmapToCanvas(bm);
-        imgBase.src = cv.toDataURL('image/png');
+        const plainUrl = URL.createObjectURL(file);
+        _previewUrls.push(plainUrl);
+        imgBase.src = plainUrl;
         pivot.setDims('base', `${cv.width} × ${cv.height}`);
         decoded = { baseBlob: file, gainBlob: new Blob(), altBlob: new Blob(), baseCanvas: cv };
         // 无增益图：只保留基础图 tab
@@ -263,10 +277,21 @@ function initDecodePage() {
     };
     downloadBlob(blobMap[pivot.current], nameMap[pivot.current]);
   });
+
+  /* ── Cleanup on navigation ─────────────────────────────── */
+  return () => {
+    revokePreviewUrls();
+  };
 }
 
 // 在页面加载和每次导航后初始化
-document.addEventListener('astro:page-load', initDecodePage);
+let cleanupDecode: (() => void) | undefined;
+document.addEventListener('astro:page-load', () => {
+  cleanupDecode = initDecodePage();
+});
+document.addEventListener('astro:before-preparation', () => {
+  cleanupDecode?.();
+});
 </script>
 
 <style>

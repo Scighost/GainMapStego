@@ -43,19 +43,6 @@ const GLSL_SRGB = /* glsl */ `
 
 // ── WebGL 工具 ───────────────────────────────────────────────────────────────
 
-function createGLCanvas(width, height) {
-  const canvas = document.createElement('canvas');
-  canvas.width  = width;
-  canvas.height = height;
-  const gl = canvas.getContext('webgl', {
-    premultipliedAlpha:  false,
-    preserveDrawingBuffer: true,
-    antialias: false,
-  });
-  if (!gl) throw new Error('WebGL not available');
-  return { gl, canvas };
-}
-
 function compileShader(gl, type, src) {
   const shader = gl.createShader(type);
   gl.shaderSource(shader, src);
@@ -74,19 +61,6 @@ function createProgram(gl, fsSrc) {
     throw new Error(`Program link error: ${gl.getProgramInfoLog(prog)}`);
   gl.useProgram(prog);
   return prog;
-}
-
-/** 创建全屏四边形缓冲并绑定顶点属性 */
-function setupQuad(gl, prog) {
-  const buf = gl.createBuffer();
-  gl.bindBuffer(gl.ARRAY_BUFFER, buf);
-  gl.bufferData(gl.ARRAY_BUFFER,
-    new Float32Array([-1, -1,  1, -1,  -1, 1,  1, 1]),
-    gl.STATIC_DRAW,
-  );
-  const loc = gl.getAttribLocation(prog, 'a_pos');
-  gl.enableVertexAttribArray(loc);
-  gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
 }
 
 /**
@@ -111,7 +85,7 @@ function glToCanvas(glCanvas, width, height) {
   const out = document.createElement('canvas');
   out.width  = width;
   out.height = height;
-  out.getContext('2d').drawImage(glCanvas, 0, 0);
+  out.getContext('2d', { willReadFrequently: true }).drawImage(glCanvas, 0, 0);
   return out;
 }
 
@@ -167,23 +141,28 @@ export function reconstructAlternateFromGainMapGL({ baseCanvas, gainMapCanvas, m
     sctx.drawImage(gainMapCanvas, 0, 0, width, height);
   }
 
-  const { gl, canvas } = createGLCanvas(width, height);
-  const prog = createProgram(gl, FS_RECONSTRUCT);
-  setupQuad(gl, prog);
+  const { gl, canvas, reconstruct } = getGLState();
+  canvas.width  = width;
+  canvas.height = height;
 
-  uploadCanvasTexture(gl, baseCanvas, 0);
-  uploadCanvasTexture(gl, gainSrc,    1);
+  useProgram(gl, reconstruct);
 
-  gl.uniform1i(gl.getUniformLocation(prog, 'u_base'),      0);
-  gl.uniform1i(gl.getUniformLocation(prog, 'u_gainmap'),   1);
-  gl.uniform3fv(gl.getUniformLocation(prog, 'u_gamma'),     new Float32Array(metadata.gamma));
-  gl.uniform3fv(gl.getUniformLocation(prog, 'u_minBoost'),  new Float32Array(metadata.minContentBoost));
-  gl.uniform3fv(gl.getUniformLocation(prog, 'u_maxBoost'),  new Float32Array(metadata.maxContentBoost));
-  gl.uniform3fv(gl.getUniformLocation(prog, 'u_offsetSdr'), new Float32Array(metadata.offsetSdr ?? [0, 0, 0]));
-  gl.uniform3fv(gl.getUniformLocation(prog, 'u_offsetHdr'), new Float32Array(metadata.offsetHdr ?? [0, 0, 0]));
+  const texBase = uploadCanvasTexture(gl, baseCanvas, 0);
+  const texGain = uploadCanvasTexture(gl, gainSrc,    1);
+
+  gl.uniform1i(gl.getUniformLocation(reconstruct.prog, 'u_base'),      0);
+  gl.uniform1i(gl.getUniformLocation(reconstruct.prog, 'u_gainmap'),   1);
+  gl.uniform3fv(gl.getUniformLocation(reconstruct.prog, 'u_gamma'),     new Float32Array(metadata.gamma));
+  gl.uniform3fv(gl.getUniformLocation(reconstruct.prog, 'u_minBoost'),  new Float32Array(metadata.minContentBoost));
+  gl.uniform3fv(gl.getUniformLocation(reconstruct.prog, 'u_maxBoost'),  new Float32Array(metadata.maxContentBoost));
+  gl.uniform3fv(gl.getUniformLocation(reconstruct.prog, 'u_offsetSdr'), new Float32Array(metadata.offsetSdr ?? [0, 0, 0]));
+  gl.uniform3fv(gl.getUniformLocation(reconstruct.prog, 'u_offsetHdr'), new Float32Array(metadata.offsetHdr ?? [0, 0, 0]));
 
   gl.viewport(0, 0, width, height);
   gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+
+  gl.deleteTexture(texBase);
+  gl.deleteTexture(texGain);
 
   return glToCanvas(canvas, width, height);
 }
@@ -230,6 +209,55 @@ const FS_GAIN_PASS2 = /* glsl */ `
   }
 `;
 
+// ── WebGL 单例 ────────────────────────────────────────────────────────────────
+// 每次调用都新建 context + 编译链接 shader 开销大，且浏览器对活动 context
+// 数量有限制（约 8–16 个），连续多次合成可能创建失败而静默回退 CPU。
+// 因此模块级缓存一个 context、三个 program 和各自的四边形 VBO，多次调用复用。
+
+let _glState = null;
+
+function getGLState() {
+  if (_glState) return _glState;
+  const canvas = document.createElement('canvas');
+  canvas.width  = 1;
+  canvas.height = 1;
+  const gl = canvas.getContext('webgl', {
+    premultipliedAlpha:  false,
+    preserveDrawingBuffer: true,
+    antialias: false,
+  });
+  if (!gl) throw new Error('WebGL not available');
+
+  const mk = (fsSrc) => {
+    const prog = createProgram(gl, fsSrc);
+    const vbo = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, vbo);
+    gl.bufferData(gl.ARRAY_BUFFER,
+      new Float32Array([-1, -1,  1, -1,  -1, 1,  1, 1]),
+      gl.STATIC_DRAW,
+    );
+    const loc = gl.getAttribLocation(prog, 'a_pos');
+    return { prog, vbo, loc };
+  };
+
+  _glState = {
+    gl,
+    canvas,
+    reconstruct: mk(FS_RECONSTRUCT),
+    gain1:       mk(FS_GAIN_PASS1),
+    gain2:       mk(FS_GAIN_PASS2),
+  };
+  return _glState;
+}
+
+/** 切换到指定 program 并绑定其四边形缓冲/属性 */
+function useProgram(gl, p) {
+  gl.useProgram(p.prog);
+  gl.bindBuffer(gl.ARRAY_BUFFER, p.vbo);
+  gl.enableVertexAttribArray(p.loc);
+  gl.vertexAttribPointer(p.loc, 2, gl.FLOAT, false, 0, 0);
+}
+
 /**
  * GPU 版 buildGainMap。
  * 需要 OES_texture_float + WEBGL_color_buffer_float 扩展；
@@ -239,7 +267,9 @@ export function buildGainMapGL({ baseCanvas, alternateCanvas, gamma = 1, offset 
   const width  = baseCanvas.width;
   const height = baseCanvas.height;
 
-  const { gl, canvas: glCanvas } = createGLCanvas(width, height);
+  const { gl, canvas: glCanvas, gain1, gain2 } = getGLState();
+  glCanvas.width  = width;
+  glCanvas.height = height;
 
   // 检查浮点纹理 + 浮点 FBO 支持
   const extFloat = gl.getExtension('OES_texture_float');
@@ -264,18 +294,20 @@ export function buildGainMapGL({ baseCanvas, alternateCanvas, gamma = 1, offset 
   if (fbStatus !== gl.FRAMEBUFFER_COMPLETE)
     throw new Error(`Float FBO not complete (status=${fbStatus}); falling back to CPU`);
 
-  const prog1 = createProgram(gl, FS_GAIN_PASS1);
-  setupQuad(gl, prog1);
-  uploadCanvasTexture(gl, baseCanvas,      0);
-  uploadCanvasTexture(gl, alternateCanvas, 1);
-  gl.uniform1i(gl.getUniformLocation(prog1, 'u_base'),   0);
-  gl.uniform1i(gl.getUniformLocation(prog1, 'u_alt'),    1);
-  gl.uniform1f(gl.getUniformLocation(prog1, 'u_offset'), offset);
+  useProgram(gl, gain1);
+  const texBase = uploadCanvasTexture(gl, baseCanvas,      0);
+  const texAlt  = uploadCanvasTexture(gl, alternateCanvas, 1);
+  gl.uniform1i(gl.getUniformLocation(gain1.prog, 'u_base'),   0);
+  gl.uniform1i(gl.getUniformLocation(gain1.prog, 'u_alt'),    1);
+  gl.uniform1f(gl.getUniformLocation(gain1.prog, 'u_offset'), offset);
 
   gl.viewport(0, 0, width, height);
   gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
 
   // ── CPU：从 GPU 读回浮点像素，仅做 min/max 扫描（无超越函数）───────────────
+  // 注意：曾尝试 GPU 端 2×2 逐级归约后只读回 1 像素，但 float FBO 的小尺寸
+  // readPixels 在部分驱动上会返回错误值，导致 min/max 元数据错误、解码为两图
+  // 叠加。全尺寸读回 + JS 扫描在各大驱动上稳定，故保留此实现。
   const floatPixels = new Float32Array(width * height * 4);
   gl.readPixels(0, 0, width, height, gl.RGBA, gl.FLOAT, floatPixels);
 
@@ -299,20 +331,24 @@ export function buildGainMapGL({ baseCanvas, alternateCanvas, gamma = 1, offset 
   // ── Pass 2：归一化 → 8-bit 增益图 ───────────────────────────────────────
   gl.bindFramebuffer(gl.FRAMEBUFFER, null);
 
-  const prog2 = createProgram(gl, FS_GAIN_PASS2);
-  setupQuad(gl, prog2);
+  useProgram(gl, gain2);
 
   // floatTex 绑定到纹理单元 2（避免覆盖 0/1 处的输入纹理）
   gl.activeTexture(gl.TEXTURE2);
   gl.bindTexture(gl.TEXTURE_2D, floatTex);
 
-  gl.uniform1i(gl.getUniformLocation(prog2, 'u_logmap'), 2);
-  gl.uniform3fv(gl.getUniformLocation(prog2, 'u_logMin'), new Float32Array(logMin));
-  gl.uniform3fv(gl.getUniformLocation(prog2, 'u_logMax'), new Float32Array(logMax));
-  gl.uniform1f(gl.getUniformLocation(prog2, 'u_gamma'),  gamma);
+  gl.uniform1i(gl.getUniformLocation(gain2.prog, 'u_logmap'), 2);
+  gl.uniform3fv(gl.getUniformLocation(gain2.prog, 'u_logMin'), new Float32Array(logMin));
+  gl.uniform3fv(gl.getUniformLocation(gain2.prog, 'u_logMax'), new Float32Array(logMax));
+  gl.uniform1f(gl.getUniformLocation(gain2.prog, 'u_gamma'),  gamma);
 
   gl.viewport(0, 0, width, height);
   gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+
+  gl.deleteTexture(texBase);
+  gl.deleteTexture(texAlt);
+  gl.deleteTexture(floatTex);
+  gl.deleteFramebuffer(fbo);
 
   return {
     gainMapCanvas:    glToCanvas(glCanvas, width, height),

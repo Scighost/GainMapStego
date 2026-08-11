@@ -127,6 +127,13 @@ function initHomePage() {
   let _altBlob:  Blob | null = null;
   let _sourceStem = 'decoded';
 
+  // 预览用的 object URL（base/gainmap/alt 的 JPEG blob），避免对整张图做 PNG 编码
+  let _previewUrls: string[] = [];
+  function revokePreviewUrls() {
+    for (const u of _previewUrls) URL.revokeObjectURL(u);
+    _previewUrls = [];
+  }
+
   // 点击整个区域（包括按钮）均触发文件选择
   dropTarget.addEventListener('click', () => fileInput.click());
 
@@ -149,6 +156,7 @@ function initHomePage() {
 
   async function processFile(file: File) {
     _sourceStem = file.name.replace(/\.[^.]+$/, '');
+    revokePreviewUrls();
     resultsEl!.classList.remove('visible');
     hBtnSave.disabled = true;
     // 重置预览 tab：全部显示并回到合成图
@@ -187,9 +195,13 @@ function initHomePage() {
 
       _baseBlob = baseBlob; _gainBlob = gainBlob; _altBlob = altBlob;
 
-      imgBase.src    = baseCanvas.toDataURL('image/png');
-      imgGainmap.src = gainMapCanvas.toDataURL('image/png');
-      imgAlt.src     = altCanvas.toDataURL('image/png');
+      const baseUrl = URL.createObjectURL(baseBlob);
+      const gainUrl = URL.createObjectURL(gainBlob);
+      const altUrl  = URL.createObjectURL(altBlob);
+      _previewUrls = [baseUrl, gainUrl, altUrl];
+      imgBase.src    = baseUrl;
+      imgGainmap.src = gainUrl;
+      imgAlt.src     = altUrl;
       pivot.setDims('base',    `${baseCanvas.width} × ${baseCanvas.height}`);
       pivot.setDims('gainmap', `${gainMapCanvas.width} × ${gainMapCanvas.height}`);
       pivot.setDims('alt',     `${altCanvas.width} × ${altCanvas.height}`);
@@ -205,7 +217,9 @@ function initHomePage() {
       try {
         const bm = await blobToImage(file);
         const cv = imageBitmapToCanvas(bm);
-        imgBase.src = cv.toDataURL('image/png');
+        const plainUrl = URL.createObjectURL(file);
+        _previewUrls.push(plainUrl);
+        imgBase.src = plainUrl;
         pivot.setDims('base', `${cv.width} × ${cv.height}`);
         _baseBlob = file;
         // 无增益图：只保留基础图 tab
@@ -237,10 +251,21 @@ function initHomePage() {
     const blob = blobMap[pivot.current];
     if (blob) downloadBlob(blob, nameMap[pivot.current]);
   });
+
+  /* ── Cleanup on navigation ─────────────────────────────── */
+  return () => {
+    revokePreviewUrls();
+  };
 }
 
 // 在页面加载和每次导航后初始化
-document.addEventListener('astro:page-load', initHomePage);
+let cleanupHome: (() => void) | undefined;
+document.addEventListener('astro:page-load', () => {
+  cleanupHome = initHomePage();
+});
+document.addEventListener('astro:before-preparation', () => {
+  cleanupHome?.();
+});
 </script>
 
 <style>

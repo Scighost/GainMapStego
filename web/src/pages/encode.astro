@@ -177,6 +177,18 @@ function initEncodePage() {
   let altBitmap:  ImageBitmap | null = null;
   let encoded:    Encoded | null     = null;
 
+  // 结果预览的 object URL（base/gainmap/alt 的 JPEG blob），切换 tab 直接复用，
+  // 避免每次点击都 toDataURL 重新编码整张图
+  let _baseUrl: string | null = null;
+  let _gainUrl: string | null = null;
+  let _altUrl:  string | null = null;
+  function revokeResultUrls() {
+    if (_hdrObjectUrl) { URL.revokeObjectURL(_hdrObjectUrl); _hdrObjectUrl = null; }
+    if (_baseUrl)      { URL.revokeObjectURL(_baseUrl);      _baseUrl = null; }
+    if (_gainUrl)      { URL.revokeObjectURL(_gainUrl);      _gainUrl = null; }
+    if (_altUrl)       { URL.revokeObjectURL(_altUrl);       _altUrl = null; }
+  }
+
   /* ── Element refs ──────────────────────────────────────── */
   const $  = (id: string) => document.getElementById(id)!;
   const $i = (id: string) => $( id) as HTMLInputElement;
@@ -341,7 +353,7 @@ function initEncodePage() {
     previewResult.removeAttribute('src');
     fileBase.value = '';
     fileAlt.value  = '';
-    if (_hdrObjectUrl) { URL.revokeObjectURL(_hdrObjectUrl); _hdrObjectUrl = null; }
+    revokeResultUrls();
     setRows('');
     setMetaVisible(false);
     setPaneVisible(false);
@@ -360,13 +372,15 @@ function initEncodePage() {
   /* ── Result preview toggle ─────────────────────────────── */
   function showResult(kind: 'base' | 'alternate' | 'gainmap' | 'hdr') {
     if (!encoded) return;
+    let url: string | null;
     if (kind === 'hdr') {
-      if (!_hdrObjectUrl) return;
-      previewResult.src = _hdrObjectUrl;
+      url = _hdrObjectUrl;
     } else {
-      const map = { base: encoded.baseCanvas, alternate: encoded.alternateCanvas, gainmap: encoded.gainMapCanvas };
-      previewResult.src = map[kind].toDataURL('image/png');
+      const map = { base: _baseUrl, alternate: _altUrl, gainmap: _gainUrl };
+      url = map[kind];
     }
+    if (!url) return;
+    previewResult.src = url;
     // 重放 fade-in-up，与解码页 pivot 切换动画一致
     previewResult.classList.remove('anim-in');
     void previewResult.offsetWidth;
@@ -501,8 +515,11 @@ function initEncodePage() {
       setPaneVisible(true);
 
       setExports(true);
-      if (_hdrObjectUrl) URL.revokeObjectURL(_hdrObjectUrl);
+      revokeResultUrls();
       _hdrObjectUrl = URL.createObjectURL(encoded.gainmapHdrBlob);
+      _baseUrl      = URL.createObjectURL(encoded.baseBlob);
+      _gainUrl      = URL.createObjectURL(encoded.gainBlob);
+      _altUrl       = URL.createObjectURL(encoded.altBlob);
       showResult('hdr');
       // 隐藏结果区占位文字
       const ph = document.getElementById('result-placeholder');
@@ -533,10 +550,7 @@ function initEncodePage() {
 
   /* ── Cleanup on navigation ─────────────────────────────── */
   return () => {
-    if (_hdrObjectUrl) {
-      URL.revokeObjectURL(_hdrObjectUrl);
-      _hdrObjectUrl = null;
-    }
+    revokeResultUrls();
   };
 }
 

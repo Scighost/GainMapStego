@@ -89,28 +89,32 @@ function _buildGainMapCPU({ baseCanvas, alternateCanvas, gamma = 1, offset = 1 }
 
   const minBoost = [Number.POSITIVE_INFINITY, Number.POSITIVE_INFINITY, Number.POSITIVE_INFINITY];
   const maxBoost = [0, 0, 0];
-  const recovery = new Float32Array(width * height * 3);
 
-  let idxRecovery = 0;
+  // 第一遍：求 min/max。不缓存中间结果，两遍直接重读像素，
+  // 省掉原来整幅 Float32Array(w*h*3) 的内存（16MP 图约 192MB）。
   for (let i = 0; i < baseData.data.length; i += 4) {
     for (let c = 0; c < 3; c++) {
       const bLin = srgbToLinear(baseData.data[i + c]);
       const aLin = srgbToLinear(altData.data[i + c]);
       const value = Math.max(0.000001, (aLin + offset) / (bLin + offset));
-      recovery[idxRecovery++] = value;
-      minBoost[c] = Math.min(minBoost[c], value);
-      maxBoost[c] = Math.max(maxBoost[c], value);
+      if (value < minBoost[c]) minBoost[c] = value;
+      if (value > maxBoost[c]) maxBoost[c] = value;
     }
   }
 
+  const minV = minBoost.map((v) => Math.max(v, 0.000001));
+  const maxV = maxBoost.map((v, c) => Math.max(v, minV[c] + 0.000001));
+  const logMinV = minV.map(Math.log);
+  const logMaxV = maxV.map(Math.log);
+
+  // 第二遍：归一化写出
   const gainMapData = new ImageData(width, height);
-  idxRecovery = 0;
   for (let i = 0; i < gainMapData.data.length; i += 4) {
     for (let c = 0; c < 3; c++) {
-      const minV = Math.max(minBoost[c], 0.000001);
-      const maxV = Math.max(maxBoost[c], minV + 0.000001);
-      const v = recovery[idxRecovery++];
-      const t = clamp((Math.log(v) - Math.log(minV)) / (Math.log(maxV) - Math.log(minV)), 0, 1);
+      const bLin = srgbToLinear(baseData.data[i + c]);
+      const aLin = srgbToLinear(altData.data[i + c]);
+      const v = Math.max(0.000001, (aLin + offset) / (bLin + offset));
+      const t = clamp((Math.log(v) - logMinV[c]) / (logMaxV[c] - logMinV[c]), 0, 1);
       gainMapData.data[i + c] = Math.round((t ** gamma) * 255);
     }
     gainMapData.data[i + 3] = 255;
