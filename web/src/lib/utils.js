@@ -77,3 +77,67 @@ export function scrollIntoViewIfNeeded(el) {
   const inView = rect.top >= navH && rect.bottom <= window.innerHeight;
   if (!inView) window.scrollTo({ top: rect.top + window.scrollY - navH, behavior: 'smooth' });
 }
+
+/**
+ * 为元素附加移动端左右滑动手势（用于图片预览切换 tab）。
+ * 达到横向滑动阈值后触发 onSwipeLeft / onSwipeRight，并吞掉随后的合成 click，
+ * 避免误触图片自身的点击行为（如打开灯箱）。垂直方向保留页面原生滚动。
+ *
+ * @param {HTMLElement} el  监听手势的容器（通常为 .img-wrap）
+ * @param {object} callbacks
+ * @param {() => void} callbacks.onSwipeLeft  向左滑（手指左移 → 下一个）
+ * @param {() => void} callbacks.onSwipeRight 向右滑（手指右移 → 上一个）
+ * @param {number} [threshold=56] 判定为滑动的最小水平位移（px）
+ */
+export function attachSwipe(el, { onSwipeLeft, onSwipeRight, threshold = 56 }) {
+  if (!el) return () => {};
+  // 仅触屏设备需要；纯桌面（无触摸）不会派发触摸事件
+  if (!('ontouchstart' in window) && !navigator.maxTouchPoints) return () => {};
+  // 横向手势交给 JS 处理，纵向保留原生滚动
+  el.style.touchAction = 'pan-y';
+
+  let startX = 0, startY = 0, tracking = false, suppressClick = false, suppressTimer = null;
+
+  el.addEventListener('touchstart', (e) => {
+    if (e.touches.length !== 1) return;
+    suppressClick = false;
+    const t = e.touches[0];
+    startX = t.clientX;
+    startY = t.clientY;
+    tracking = true;
+  }, { passive: true });
+
+  el.addEventListener('touchmove', (e) => {
+    if (!tracking || e.touches.length !== 1) return;
+    const dx = e.touches[0].clientX - startX;
+    const dy = e.touches[0].clientY - startY;
+    if (Math.abs(dx) > 8 && Math.abs(dx) > Math.abs(dy) * 1.15) {
+      // 确认横向意图后阻止页面随手指滚动
+      e.preventDefault();
+    }
+  }, { passive: false });
+
+  el.addEventListener('touchend', (e) => {
+    if (!tracking) return;
+    tracking = false;
+    if (e.changedTouches.length !== 1) return;
+    const dx = e.changedTouches[0].clientX - startX;
+    const dy = e.changedTouches[0].clientY - startY;
+    if (Math.abs(dx) >= threshold && Math.abs(dx) > Math.abs(dy) * 1.2) {
+      suppressClick = true;
+      clearTimeout(suppressTimer);
+      suppressTimer = setTimeout(() => { suppressClick = false; }, 400);
+      if (dx < 0) onSwipeLeft?.();
+      else onSwipeRight?.();
+    }
+  }, { passive: true });
+
+  // capture 阶段拦截滑动后的合成 click，避免误触图片点击（灯箱等）
+  el.addEventListener('click', (e) => {
+    if (!suppressClick) return;
+    suppressClick = false;
+    e.preventDefault();
+    e.stopPropagation();
+    e.stopImmediatePropagation();
+  }, true);
+}

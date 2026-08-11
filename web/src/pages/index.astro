@@ -38,24 +38,35 @@ import BaseLayout from '../layouts/BaseLayout.astro';
       <input id="home-file-input" type="file" accept=".jpg,.jpeg,image/jpeg" hidden />
     </div>
 
-    <div id="home-status" class="status-bar" style="margin-bottom:10px"></div>
-
     <div id="home-results" class="home-results">
-      <figure class="drop-zone static-zone" id="home-card-base">
-        <figcaption>基础图<span class="zone-dim" id="hdim-base"></span><button id="hbtn-save-base" class="save-btn" disabled title="保存基础图"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>保存</button></figcaption>
-        <div class="img-wrap"><img id="home-img-base" alt="基础图" /></div>
-      </figure>
-      <figure class="drop-zone static-zone" id="home-card-alt">
-        <figcaption>合成图<span class="zone-dim" id="hdim-alt"></span><button id="hbtn-save-alt" class="save-btn" disabled title="保存合成图"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>保存</button></figcaption>
-        <div class="img-wrap"><img id="home-img-alt" alt="合成图" /></div>
-      </figure>
-      <figure class="drop-zone static-zone" id="home-card-gainmap">
-        <figcaption>增益图<span class="zone-dim" id="hdim-gainmap"></span><button id="hbtn-save-gainmap" class="save-btn" disabled title="保存增益图"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>保存</button></figcaption>
-        <div class="img-wrap"><img id="home-img-gainmap" alt="增益图" /></div>
+      <figure class="drop-zone static-zone" id="home-result">
+        <div class="result-toolbar" role="tablist" aria-label="图像预览">
+          <button class="pivot-tab active" type="button" role="tab" aria-selected="true" data-pivot="alt">合成图</button>
+          <button class="pivot-tab" type="button" role="tab" aria-selected="false" data-pivot="base">基础图</button>
+          <button class="pivot-tab" type="button" role="tab" aria-selected="false" data-pivot="gainmap">增益图</button>
+          <span class="zone-dim" id="hdim-active"></span>
+          <button id="hbtn-save" class="save-btn" type="button" disabled title="保存合成图">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
+              <polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+            </svg>
+            保存
+          </button>
+        </div>
+        <div class="img-wrap" role="tabpanel">
+          <img id="home-img-alt" class="pivot-panel active" alt="合成图" />
+          <img id="home-img-base" class="pivot-panel" alt="基础图" />
+          <img id="home-img-gainmap" class="pivot-panel" alt="增益图" />
+          <div class="zone-placeholder">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/>
+              <polyline points="21 15 16 10 5 21"/>
+            </svg>
+            <span id="hph-text">合成图将显示在此</span>
+          </div>
+        </div>
       </figure>
     </div>
-
-    <div id="home-meta" class="home-meta"><div class="meta-dl-wrap"></div></div>
   </section>
 </BaseLayout>
 
@@ -63,30 +74,44 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 import { unpackGainmapJpeg } from '../lib/iso21496.js';
 import { reconstructAlternateFromGainMap } from '../lib/image-processing.js';
 import { blobToImage, canvasToJpegBlob, downloadBlob, fileToUint8Array, imageBitmapToCanvas, scrollIntoViewIfNeeded } from '../lib/utils.js';
+import { createPivot } from '../lib/pivot.js';
 import { openLightbox } from '../lib/lightbox.js';
 
 function initHomePage() {
   const dropTarget  = document.getElementById('home-drop');
   const fileInput   = document.getElementById('home-file-input') as HTMLInputElement | null;
-  const statusEl    = document.getElementById('home-status');
   const resultsEl   = document.getElementById('home-results');
-  const metaEl      = document.getElementById('home-meta');
 
   // 如果元素不存在，说明不在首页，直接返回
-  if (!dropTarget || !fileInput || !statusEl || !resultsEl || !metaEl) return;
+  if (!dropTarget || !fileInput || !resultsEl) return;
 
   const imgBase     = document.getElementById('home-img-base') as HTMLImageElement;
   const imgGainmap  = document.getElementById('home-img-gainmap') as HTMLImageElement;
   const imgAlt      = document.getElementById('home-img-alt') as HTMLImageElement;
 
-  const hBtnSaveBase    = document.getElementById('hbtn-save-base')    as HTMLButtonElement;
-  const hBtnSaveGainmap = document.getElementById('hbtn-save-gainmap') as HTMLButtonElement;
-  const hBtnSaveAlt     = document.getElementById('hbtn-save-alt')     as HTMLButtonElement;
+  const hBtnSave    = document.getElementById('hbtn-save') as HTMLButtonElement;
+
+  /* ── Pivot 预览（与解码页一致） ───────────────────────── */
+  type PivotTab = 'alt' | 'base' | 'gainmap';
+  const PIVOT_ORDER: PivotTab[] = ['alt', 'base', 'gainmap'];
+  const pivot = createPivot({
+    order: PIVOT_ORDER,
+    buttons: {
+      alt:     document.querySelector<HTMLButtonElement>('[data-pivot="alt"]')!,
+      base:    document.querySelector<HTMLButtonElement>('[data-pivot="base"]')!,
+      gainmap: document.querySelector<HTMLButtonElement>('[data-pivot="gainmap"]')!,
+    },
+    panels: { alt: imgAlt, base: imgBase, gainmap: imgGainmap },
+    labels: { alt: '合成图', base: '基础图', gainmap: '增益图' },
+    dimsEl: document.getElementById('hdim-active')!,
+    placeholderEl: document.getElementById('hph-text')!,
+    saveBtn: hBtnSave,
+  });
 
   // 图片预览（灯箱）
   const _homeImgItems = [
-    { el: imgBase,    label: '基础图' },
     { el: imgAlt,     label: '合成图' },
+    { el: imgBase,    label: '基础图' },
     { el: imgGainmap, label: '增益图' },
   ];
   _homeImgItems.forEach(({ el, label }) => {
@@ -124,15 +149,29 @@ function initHomePage() {
 
   async function processFile(file: File) {
     _sourceStem = file.name.replace(/\.[^.]+$/, '');
-    statusEl!.textContent = '解码中…';
-    statusEl!.className = 'status-bar';
     resultsEl!.classList.remove('visible');
-    metaEl!.classList.remove('visible');
-    // 重置卡片可见性
-    document.getElementById('home-card-base')!.style.gridColumn = '';
-    document.getElementById('home-card-gainmap')!.style.display = '';
-    document.getElementById('home-card-alt')!.style.display     = '';
-    hBtnSaveBase.disabled = hBtnSaveGainmap.disabled = hBtnSaveAlt.disabled = true;
+    hBtnSave.disabled = true;
+    // 重置预览 tab：全部显示并回到合成图
+    PIVOT_ORDER.forEach(t => pivot.setDims(t, ''));
+    pivot.setTabsVisible(PIVOT_ORDER);
+    pivot.switchTab('alt');
+
+    // 选择图片后：框内显示文件名 + 右侧转圈，期间禁止再次选择
+    dropTarget.classList.add('collapsed', 'busy');
+    dropTarget.innerHTML = `<span class="drop-collapsed-name">${file.name}</span>` +
+      `<span class="drop-spinner"><svg class="spin-svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-label="解码中"><circle cx="12" cy="12" r="9" stroke-opacity=".25"/><path d="M12 3a9 9 0 019 9" stroke-linecap="round"/></svg></span>`;
+
+    // 结束后重写框内容：文件名 + 额外消息 + 重新选择按钮
+    const setBoxResult = (extraHtml: string) => {
+      dropTarget.classList.remove('busy');
+      dropTarget.innerHTML = `<span class="drop-collapsed-name">${file.name}</span>${extraHtml}` +
+        `<button class="drop-collapsed-retry" id="home-retry">重新选择</button>`;
+      document.getElementById('home-retry')!.addEventListener('click', (e) => {
+        e.stopPropagation();
+        fileInput!.click();
+      });
+    };
+
     try {
       const bytes = await fileToUint8Array(file);
       const { baseJpegBytes, gainmapJpegBytes, metadata } = unpackGainmapJpeg(bytes);
@@ -151,38 +190,15 @@ function initHomePage() {
       imgBase.src    = baseCanvas.toDataURL('image/png');
       imgGainmap.src = gainMapCanvas.toDataURL('image/png');
       imgAlt.src     = altCanvas.toDataURL('image/png');
-      ;(document.getElementById('hdim-base')    as HTMLElement).textContent = `${baseCanvas.width} × ${baseCanvas.height}`;
-      ;(document.getElementById('hdim-gainmap') as HTMLElement).textContent = `${gainMapCanvas.width} × ${gainMapCanvas.height}`;
-      ;(document.getElementById('hdim-alt')     as HTMLElement).textContent = `${altCanvas.width} × ${altCanvas.height}`;
+      pivot.setDims('base',    `${baseCanvas.width} × ${baseCanvas.height}`);
+      pivot.setDims('gainmap', `${gainMapCanvas.width} × ${gainMapCanvas.height}`);
+      pivot.setDims('alt',     `${altCanvas.width} × ${altCanvas.height}`);
+      pivot.switchTab('alt');
 
-      const dRow = (k: string, v: string) =>
-        `<div class="meta-dl-row"><span class="mk">${k}</span><span class="mv">${v}</span></div>`;
-      const dlWrap = metaEl!.querySelector('.meta-dl-wrap')!;
-      dlWrap.innerHTML = [
-        dRow('文件', file.name),
-        dRow('大小', `${(file.size / 1024).toFixed(1)} KB`),
-        `<hr class="meta-dl-sep" />`,
-        dRow('Gamma',     metadata.gamma.map((x: number) => x.toFixed(3)).join(', ')),
-        dRow('minBoost',  metadata.minContentBoost.map((x: number) => x.toFixed(3)).join(', ')),
-        dRow('maxBoost',  metadata.maxContentBoost.map((x: number) => x.toFixed(3)).join(', ')),
-        dRow('useBaseCG', String(metadata.useBaseColorSpace)),
-      ].join('');
-
-      hBtnSaveBase.disabled = hBtnSaveGainmap.disabled = hBtnSaveAlt.disabled = false;
+      hBtnSave.disabled = false;
       resultsEl!.classList.add('visible');
-      document.getElementById('home-card-base')!.style.gridColumn = '';
-      document.getElementById('home-card-gainmap')!.style.display = '';
-      document.getElementById('home-card-alt')!.style.display     = '';
-      metaEl!.classList.add('visible');
-      statusEl!.textContent = '✓ 解码成功';
-      statusEl!.className = 'status-bar ok';
-      // 收起拖放区
-      dropTarget.classList.add('collapsed');
-      dropTarget.innerHTML = `<span class="drop-collapsed-name">${file.name}</span><button class="drop-collapsed-retry" id="home-retry">重新选择</button>`;
-      document.getElementById('home-retry')!.addEventListener('click', (e) => {
-        e.stopPropagation();
-        fileInput!.click();
-      });
+      // 转圈变为重新选择，结果卡片本身就是成功反馈
+      setBoxResult('');
       scrollIntoViewIfNeeded(resultsEl!);
     } catch {
       // 尝试将文件渲染为基础图（有效 JPEG 但无增益图）
@@ -190,26 +206,37 @@ function initHomePage() {
         const bm = await blobToImage(file);
         const cv = imageBitmapToCanvas(bm);
         imgBase.src = cv.toDataURL('image/png');
+        pivot.setDims('base', `${cv.width} × ${cv.height}`);
         _baseBlob = file;
-        hBtnSaveBase.disabled = false;
-        ;(document.getElementById('hdim-base') as HTMLElement).textContent = `${cv.width} × ${cv.height}`;
-        document.getElementById('home-card-base')!.style.gridColumn = '1 / -1';
-        document.getElementById('home-card-gainmap')!.style.display  = 'none';
-        document.getElementById('home-card-alt')!.style.display      = 'none';
+        // 无增益图：只保留基础图 tab
+        pivot.setTabsVisible(['base']);
+        pivot.switchTab('base');
+        hBtnSave.disabled = false;
         resultsEl!.classList.add('visible');
-        statusEl!.textContent = '未找到增益图，仅显示原始图像';
-        statusEl!.className   = 'status-bar';
+        setBoxResult('<span class="drop-note">未找到增益图，仅显示原始图像</span>');
         scrollIntoViewIfNeeded(resultsEl!);
       } catch (e2: any) {
-        statusEl!.textContent = `解码失败：${e2?.message ?? e2}`;
-        statusEl!.className   = 'status-bar error';
+        // 解码失败：在选择框内显示提醒内容
+        setBoxResult(`<span class="drop-error">解码失败：${e2?.message ?? e2}</span>`);
       }
     }
   }
 
-  hBtnSaveBase.addEventListener('click',    () => _baseBlob && downloadBlob(_baseBlob, `${_sourceStem}_base.jpg`));
-  hBtnSaveGainmap.addEventListener('click', () => _gainBlob && downloadBlob(_gainBlob, `${_sourceStem}_gainmap.jpg`));
-  hBtnSaveAlt.addEventListener('click',     () => _altBlob  && downloadBlob(_altBlob,  `${_sourceStem}_alternate.jpg`));
+  /* ── Save ──────────────────────────────────────────────── */
+  hBtnSave.addEventListener('click', () => {
+    const blobMap: Record<PivotTab, Blob | null> = {
+      alt:     _altBlob,
+      base:    _baseBlob,
+      gainmap: _gainBlob,
+    };
+    const nameMap: Record<PivotTab, string> = {
+      alt:     `${_sourceStem}_alternate.jpg`,
+      base:    `${_sourceStem}_base.jpg`,
+      gainmap: `${_sourceStem}_gainmap.jpg`,
+    };
+    const blob = blobMap[pivot.current];
+    if (blob) downloadBlob(blob, nameMap[pivot.current]);
+  });
 }
 
 // 在页面加载和每次导航后初始化
@@ -236,26 +263,14 @@ document.addEventListener('astro:page-load', initHomePage);
     opacity: .35 !important;
     transform: none !important;
   }
-  .home-save-btn {
-    display: flex;
-    align-items: center;
-    padding: 0.18rem 0.38rem;
-    background: var(--accent);
-    color: #fff;
-    border: 1px solid var(--accent);
-    border-radius: 4px;
-    cursor: pointer;
-    transition: background 0.15s;
-    flex-shrink: 0;
+  /* 与解码页一致的预览卡片 */
+  #home-result {
+    background: var(--bg-card);
+    border: 1px solid var(--border-lo);
+    border-radius: var(--radius-lg);
+    min-height: 380px;
   }
-  .home-save-btn:disabled {
-    opacity: 0.3;
-    cursor: not-allowed;
-  }
-  .home-save-btn:not(:disabled):hover {
-    background: var(--accent-hv, var(--accent));
-    border-color: var(--accent-hv, var(--accent));
-  }
+
   img:not([src]),
   img[src=""] { display: none; }
 
@@ -299,7 +314,7 @@ document.addEventListener('astro:page-load', initHomePage);
     min-width: 140px;
     background: var(--bg-card, #1c1c1e);
     border: 1px solid var(--border);
-    border-radius: 10px;
+    border-radius: var(--radius-lg);
     padding: 0.6em 0.75em 0.65em;
     box-shadow: 0 8px 28px rgba(0,0,0,.28), 0 1px 4px rgba(0,0,0,.12);
     transition: opacity 0.2s, visibility 0.2s, transform 0.2s;

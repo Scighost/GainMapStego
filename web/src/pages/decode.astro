@@ -28,74 +28,30 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 
     <!-- ── Workspace ───────────────────────────────────── -->
     <section class="workspace" id="decode-workspace">
-      <figure class="drop-zone static-zone" id="zone-base">
-        <figcaption>
-          基础图
-          <span class="zone-dim" id="dim-d-base"></span>
-          <button id="btn-save-base" class="save-btn" disabled title="保存基础图">
+      <figure class="drop-zone static-zone" id="zone-result">
+        <div class="result-toolbar" role="tablist" aria-label="图像预览">
+          <button class="pivot-tab active" type="button" role="tab" aria-selected="true" data-pivot="alt">合成图</button>
+          <button class="pivot-tab" type="button" role="tab" aria-selected="false" data-pivot="base">基础图</button>
+          <button class="pivot-tab" type="button" role="tab" aria-selected="false" data-pivot="gainmap">增益图</button>
+          <span class="zone-dim" id="dim-d-active"></span>
+          <button id="btn-save" class="save-btn" type="button" disabled title="保存合成图">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
               <polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
             </svg>
             保存
           </button>
-        </figcaption>
-        <div class="img-wrap">
-          <img id="img-base" alt="基础图" />
-          <div class="zone-placeholder">
-            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-              <rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/>
-              <polyline points="21 15 16 10 5 21"/>
-            </svg>
-            <span>基础图将显示在此</span>
-          </div>
         </div>
-      </figure>
-
-      <figure class="drop-zone static-zone">
-        <figcaption>
-          合成图
-          <span class="zone-dim" id="dim-d-alt"></span>
-          <button id="btn-save-alt" class="save-btn" disabled title="保存合成图">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
-              <polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
-            </svg>
-            保存
-          </button>
-        </figcaption>
-        <div class="img-wrap">
-          <img id="img-alt" alt="合成图" />
+        <div class="img-wrap" role="tabpanel">
+          <img id="img-alt" class="pivot-panel active" alt="合成图" />
+          <img id="img-base" class="pivot-panel" alt="基础图" />
+          <img id="img-gainmap" class="pivot-panel" alt="增益图" />
           <div class="zone-placeholder">
             <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
               <rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/>
               <polyline points="21 15 16 10 5 21"/>
             </svg>
-            <span>合成图将显示在此</span>
-          </div>
-        </div>
-      </figure>
-
-      <figure class="drop-zone static-zone">
-        <figcaption>
-          增益图
-          <span class="zone-dim" id="dim-d-gainmap"></span>
-          <button id="btn-save-gainmap" class="save-btn" disabled title="保存增益图">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
-              <polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
-            </svg>
-            保存
-          </button>
-        </figcaption>
-        <div class="img-wrap">
-          <img id="img-gainmap" alt="增益图" />
-          <div class="zone-placeholder">
-            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-              <rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/>
-              <polyline points="21 15 16 10 5 21"/>
-            </svg>
-            <span>增益图将显示在此</span>
+            <span id="ph-decode-text">合成图将显示在此</span>
           </div>
         </div>
       </figure>
@@ -107,7 +63,8 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 <script>
 import { unpackGainmapJpeg } from '../lib/iso21496.js';
 import { reconstructAlternateFromGainMap } from '../lib/image-processing.js';
-import { blobToImage, canvasToJpegBlob, downloadBlob, fileToUint8Array, imageBitmapToCanvas, scrollIntoViewIfNeeded } from '../lib/utils.js';
+import { blobToImage, canvasToJpegBlob, downloadBlob, fileSizeText, fileToUint8Array, imageBitmapToCanvas, scrollIntoViewIfNeeded } from '../lib/utils.js';
+import { createPivot } from '../lib/pivot.js';
 import { openLightbox } from '../lib/lightbox.js';
 
 function initDecodePage() {
@@ -132,21 +89,34 @@ function initDecodePage() {
   const statusEl   = document.getElementById('decode-status')!;
   const metaEl     = document.getElementById('decode-meta')!;
 
-  const btnSaveBase    = document.getElementById('btn-save-base')    as HTMLButtonElement;
-  const btnSaveGainmap = document.getElementById('btn-save-gainmap') as HTMLButtonElement;
-  const btnSaveAlt     = document.getElementById('btn-save-alt')     as HTMLButtonElement;
+  const btnSave    = document.getElementById('btn-save')    as HTMLButtonElement;
 
   function setExports(on: boolean) {
-    btnSaveBase.disabled    = !on;
-    btnSaveGainmap.disabled = !on;
-    btnSaveAlt.disabled     = !on;
+    btnSave.disabled = !on;
   }
   setExports(false);
 
+  /* ── Pivot 预览 ───────────────────────────────────────── */
+  type PivotTab = 'alt' | 'base' | 'gainmap';
+  const PIVOT_ORDER: PivotTab[] = ['alt', 'base', 'gainmap'];
+  const pivot = createPivot({
+    order: PIVOT_ORDER,
+    buttons: {
+      alt:     document.querySelector<HTMLButtonElement>('[data-pivot="alt"]')!,
+      base:    document.querySelector<HTMLButtonElement>('[data-pivot="base"]')!,
+      gainmap: document.querySelector<HTMLButtonElement>('[data-pivot="gainmap"]')!,
+    },
+    panels: { alt: imgAlt, base: imgBase, gainmap: imgGainmap },
+    labels: { alt: '合成图', base: '基础图', gainmap: '增益图' },
+    dimsEl: document.getElementById('dim-d-active')!,
+    placeholderEl: document.getElementById('ph-decode-text')!,
+    saveBtn: btnSave,
+  });
+
   // 图片预览（灯箱）
   const _decodeImgItems = [
-    { el: imgBase,    label: '基础图' },
     { el: imgAlt,     label: '合成图' },
+    { el: imgBase,    label: '基础图' },
     { el: imgGainmap, label: '增益图' },
   ];
   _decodeImgItems.forEach(({ el, label }) => {
@@ -176,10 +146,10 @@ function initDecodePage() {
   });
 
   const workspace = document.getElementById('decode-workspace')!;
-  workspace.addEventListener('dragover', e => { e.preventDefault(); workspace.style.borderColor = 'var(--accent)'; });
-  workspace.addEventListener('dragleave', () => { workspace.style.borderColor = ''; });
+  workspace.addEventListener('dragover', e => { e.preventDefault(); workspace.classList.add('drag-over'); });
+  workspace.addEventListener('dragleave', () => workspace.classList.remove('drag-over'));
   workspace.addEventListener('drop', e => {
-    e.preventDefault(); workspace.style.borderColor = '';
+    e.preventDefault(); workspace.classList.remove('drag-over');
     const f = (e as DragEvent).dataTransfer?.files?.[0];
     if (f) processFile(f);
   });
@@ -198,9 +168,10 @@ function initDecodePage() {
     imgGainmap.removeAttribute('src');
     imgAlt.removeAttribute('src');
     metaEl.innerHTML = '';
-    ;(document.getElementById('dim-d-base')    as HTMLElement).textContent = '';
-    ;(document.getElementById('dim-d-gainmap') as HTMLElement).textContent = '';
-    ;(document.getElementById('dim-d-alt')     as HTMLElement).textContent = '';
+    // 重置预览 tab：全部显示并回到合成图
+    PIVOT_ORDER.forEach(t => pivot.setDims(t, ''));
+    pivot.setTabsVisible(PIVOT_ORDER);
+    pivot.switchTab('alt');
 
     try {
       const bytes = await fileToUint8Array(file);
@@ -220,27 +191,36 @@ function initDecodePage() {
       imgBase.src    = baseCanvas.toDataURL('image/png');
       imgGainmap.src = gainMapCanvas.toDataURL('image/png');
       imgAlt.src     = altCanvas.toDataURL('image/png');
-      ;(document.getElementById('dim-d-base')    as HTMLElement).textContent = `${baseCanvas.width} × ${baseCanvas.height}`;
-      ;(document.getElementById('dim-d-gainmap') as HTMLElement).textContent = `${gainMapCanvas.width} × ${gainMapCanvas.height}`;
-      ;(document.getElementById('dim-d-alt')     as HTMLElement).textContent = `${altCanvas.width} × ${altCanvas.height}`;
+      pivot.setDims('base',    `${baseCanvas.width} × ${baseCanvas.height}`);
+      pivot.setDims('gainmap', `${gainMapCanvas.width} × ${gainMapCanvas.height}`);
+      pivot.setDims('alt',     `${altCanvas.width} × ${altCanvas.height}`);
+      pivot.switchTab('alt');
 
       const dRow = (k: string, v: string) =>
         `<div class="meta-dl-row"><span class="mk">${k}</span><span class="mv">${v}</span></div>`;
+      // 技术参数默认折叠：隐藏但不删除，展开可查看完整数值
       metaEl.innerHTML = [
-        dRow('文件', file.name),
-        dRow('大小', `${(file.size / 1024).toFixed(1)} KB`),
-        `<hr class="meta-dl-sep" />`,
-        dRow('Gamma',     metadata.gamma.map((x: number) => x.toFixed(3)).join(', ')),
-        dRow('OffsetSdr', metadata.offsetSdr.map((x: number) => x.toFixed(3)).join(', ')),
-        dRow('OffsetHdr', metadata.offsetHdr.map((x: number) => x.toFixed(3)).join(', ')),
-        dRow('minBoost',  metadata.minContentBoost.map((x: number) => x.toFixed(3)).join(', ')),
-        dRow('maxBoost',  metadata.maxContentBoost.map((x: number) => x.toFixed(3)).join(', ')),
-        dRow('useBaseCG', String(metadata.useBaseColorSpace)),
+        dRow('文件',   file.name),
+        dRow('大小',   fileSizeText(file.size)),
+        dRow('基础图', fileSizeText(baseBlob.size)),
+        dRow('增益图', fileSizeText(gainBlob.size)),
+        `<details class="meta-tech">` +
+          `<summary>更多</summary>` +
+          `<div class="meta-tech-body">` +
+            dRow('Gamma',     metadata.gamma.map((x: number) => x.toFixed(3)).join(', ')) +
+            dRow('OffsetSdr', metadata.offsetSdr.map((x: number) => x.toFixed(3)).join(', ')) +
+            dRow('OffsetHdr', metadata.offsetHdr.map((x: number) => x.toFixed(3)).join(', ')) +
+            dRow('minBoost',  metadata.minContentBoost.map((x: number) => x.toFixed(3)).join(', ')) +
+            dRow('maxBoost',  metadata.maxContentBoost.map((x: number) => x.toFixed(3)).join(', ')) +
+            dRow('useBaseCG', String(metadata.useBaseColorSpace)) +
+          `</div>` +
+        `</details>`,
       ].join('');
 
       setExports(true);
-      statusEl.textContent = '✓ 解码成功';
-      statusEl.className   = 'status-bar ok';
+      // 解码成功不显示提醒，结果卡片本身就是反馈
+      statusEl.textContent = '';
+      statusEl.className   = 'status-bar';
       scrollIntoViewIfNeeded(workspace);
     } catch (err: any) {
       // 尝试将文件作为普通 JPEG 显示（有效图片但无增益图）
@@ -248,9 +228,12 @@ function initDecodePage() {
         const bm = await blobToImage(file);
         const cv = imageBitmapToCanvas(bm);
         imgBase.src = cv.toDataURL('image/png');
-        ;(document.getElementById('dim-d-base') as HTMLElement).textContent = `${cv.width} × ${cv.height}`;
+        pivot.setDims('base', `${cv.width} × ${cv.height}`);
         decoded = { baseBlob: file, gainBlob: new Blob(), altBlob: new Blob(), baseCanvas: cv };
-        btnSaveBase.disabled = false;
+        // 无增益图：只保留基础图 tab
+        pivot.setTabsVisible(['base']);
+        pivot.switchTab('base');
+        btnSave.disabled = false;
         statusEl.textContent = '未找到增益图，仅显示原始图像';
         statusEl.className   = 'status-bar';
         scrollIntoViewIfNeeded(workspace);
@@ -266,9 +249,20 @@ function initDecodePage() {
   }
 
   /* ── Save ──────────────────────────────────────────────── */
-  btnSaveBase.addEventListener('click',    (e) => { e.stopPropagation(); decoded && downloadBlob(decoded.baseBlob,    `${_sourceStem}_base.jpg`); });
-  btnSaveGainmap.addEventListener('click', (e) => { e.stopPropagation(); decoded && downloadBlob(decoded.gainBlob,    `${_sourceStem}_gainmap.jpg`); });
-  btnSaveAlt.addEventListener('click',     (e) => { e.stopPropagation(); decoded && downloadBlob(decoded.altBlob,     `${_sourceStem}_alternate.jpg`); });
+  btnSave.addEventListener('click', () => {
+    if (!decoded) return;
+    const blobMap: Record<PivotTab, Blob> = {
+      alt:     decoded.altBlob,
+      base:    decoded.baseBlob,
+      gainmap: decoded.gainBlob,
+    };
+    const nameMap: Record<PivotTab, string> = {
+      alt:     `${_sourceStem}_alternate.jpg`,
+      base:    `${_sourceStem}_base.jpg`,
+      gainmap: `${_sourceStem}_gainmap.jpg`,
+    };
+    downloadBlob(blobMap[pivot.current], nameMap[pivot.current]);
+  });
 }
 
 // 在页面加载和每次导航后初始化
@@ -276,14 +270,45 @@ document.addEventListener('astro:page-load', initDecodePage);
 </script>
 
 <style>
-  figure figcaption {
+  /* ── 三图合一预览（pivot tab） ─────────────────────────── */
+  /* 去掉 workspace 外框，三合一框与左侧解码框对齐 */
+  #decode-workspace {
+    background: transparent;
+    border: none;
+    border-radius: 0;
+    padding: 0;
     display: flex;
-    align-items: center;
-    gap: 0.4rem;
+    flex-direction: column;
   }
-  /* 解码完成后图片就位，隐藏占位文字 */
-  #decode-workspace .img-wrap:has(img[src]) .zone-placeholder {
-    display: none;
+
+  #zone-result {
+    flex: 1;
+    min-height: 320px;
+    background: var(--bg-card);
+    border: 1px solid var(--border-lo);
+    border-radius: var(--radius-lg);
+  }
+
+  /* 拖入图片时的高亮反馈（外框已移除，落在三合一框上） */
+  #decode-workspace.drag-over #zone-result {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-bg), inset 0 0 12px var(--accent-bg);
+  }
+
+  #zone-result .img-wrap {
+    min-height: 0;
+  }
+  /* 信息框融入侧栏，去掉圆角边框 */
+  #decode-meta {
+    background: none;
+    border: none;
+    border-radius: 0;
+    padding: 0 2px;
+  }
+  /* 去掉状态栏上方的横线（移动端边框一并去掉） */
+  #decode-status {
+    border: none;
+    background: none;
   }
   /* 侧栏拖放区 */
   .sidebar-drop-zone {
@@ -297,7 +322,7 @@ document.addEventListener('astro:page-load', initDecodePage);
     gap: 6px;
     cursor: pointer;
     color: var(--text-dim);
-    font-size: 0.82rem;
+    font-size: var(--fs-xs);
     text-align: center;
     transition: border-color .18s, background .18s;
     background: var(--bg);

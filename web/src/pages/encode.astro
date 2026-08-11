@@ -2,7 +2,7 @@
 import BaseLayout from '../layouts/BaseLayout.astro';
 ---
 <BaseLayout title="合成" toolPage>
-  <div class="tool-page settings-after">
+  <div class="tool-page encode-page">
 
     <!-- ── Sidebar ─────────────────────────────────────── -->
     <aside class="sidebar">
@@ -83,12 +83,7 @@ import BaseLayout from '../layouts/BaseLayout.astro';
         </button>
       </div>
 
-      <!-- 桌面端信息框（按钮下方，无外框） -->
-      <div id="result-meta-desktop" class="meta-dl-wrap" style="display:none">
-        <div id="encode-status-desktop" class="status-bar"></div>
-        <div id="result-rows-desktop"></div>
-      </div>
-
+      <!-- 信息框为单实例，JS 按视口宽度在侧栏与合成图框下方之间移动 -->
       <input id="file-base" type="file" accept="image/*" hidden />
       <input id="file-alt"  type="file" accept="image/*" hidden />
     </aside>
@@ -160,7 +155,7 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 <script>
 import { buildGainMap, composeBaseAndAlternate } from '../lib/image-processing.js';
 import { createIsoMetadata, packGainmapJpeg } from '../lib/iso21496.js';
-import { blobToImage, canvasToJpegBlob, downloadBlob, fileSizeText, scrollIntoViewIfNeeded } from '../lib/utils.js';
+import { blobToImage, canvasToJpegBlob, downloadBlob, fileSizeText, scrollIntoViewIfNeeded, attachSwipe } from '../lib/utils.js';
 import { openLightbox } from '../lib/lightbox.js';
 
 function initEncodePage() {
@@ -192,17 +187,10 @@ function initEncodePage() {
   const previewAlt  = $('preview-alt')  as HTMLImageElement;
   const previewResult = $('preview-result') as HTMLImageElement;
   let _hdrObjectUrl: string | null = null;
-  /* 信息框双实例：桌面端在侧栏按钮下方，移动端在合成图框下方 */
-  const metaMobile   = $('result-meta');
-  const rowsMobile   = $('result-rows');
-  const statusMobile = $('encode-status');
-  const metaDesktop   = $('result-meta-desktop');
-  const rowsDesktop   = $('result-rows-desktop');
-  const statusDesktop = $('encode-status-desktop');
 
   const resultBox   = $('result-box');
   const resultPane  = document.querySelector<HTMLElement>('.result-pane')!;
-  const toolPage    = document.querySelector<HTMLElement>('.tool-page.settings-after')!;
+  const toolPage    = document.querySelector<HTMLElement>('.tool-page.encode-page')!;
   const phBase      = $('ph-base');
   const phAlt       = $('ph-alt');
 
@@ -212,25 +200,38 @@ function initEncodePage() {
     toolPage.classList.toggle('pane-open', on);
   }
 
+  /* ── 信息框（单实例）：桌面端在侧栏按钮下方，移动端在合成图框下方 ── */
+  const metaEl       = $('result-meta');
+  const rowsEl       = $('result-rows');
+  const statusEl     = $('encode-status');
+  const sidebarEl    = document.querySelector<HTMLElement>('.sidebar')!;
+  const resultPaneEl = document.querySelector<HTMLElement>('.result-pane')!;
+  const desktopMQ    = window.matchMedia('(min-width: 901px)');
+
+  /* 移动信息框到对应父容器（元素是同一个，样式按父容器区分） */
+  function relocateMeta() {
+    const anchor = sidebarEl.querySelector('#file-base');
+    if (desktopMQ.matches) sidebarEl.insertBefore(metaEl, anchor);
+    else resultPaneEl.appendChild(metaEl);
+  }
+  relocateMeta();
+  desktopMQ.addEventListener('change', relocateMeta);
+
   function setStatus(text: string, cls: string = '') {
-    for (const s of [statusMobile, statusDesktop]) {
-      s.textContent = text;
-      s.className = cls ? `status-bar ${cls}` : 'status-bar';
-    }
+    statusEl.textContent = text;
+    statusEl.className = cls ? `status-bar ${cls}` : 'status-bar';
   }
   function setRows(html: string) {
-    rowsMobile.innerHTML = html;
-    rowsDesktop.innerHTML = html;
+    rowsEl.innerHTML = html;
   }
   function setMetaVisible(on: boolean) {
-    metaMobile.style.display = on ? '' : 'none';
-    metaDesktop.style.display = on ? '' : 'none';
+    metaEl.style.display = on ? '' : 'none';
   }
   function scrollStatusIntoView() {
-    if (window.matchMedia('(min-width: 901px)').matches) {
-      statusDesktop.scrollIntoView({ block: 'nearest' });
+    if (desktopMQ.matches) {
+      statusEl.scrollIntoView({ block: 'nearest' });
     } else {
-      scrollIntoViewIfNeeded(statusMobile);
+      scrollIntoViewIfNeeded(statusEl);
     }
   }
 
@@ -366,6 +367,10 @@ function initEncodePage() {
       const map = { base: encoded.baseCanvas, alternate: encoded.alternateCanvas, gainmap: encoded.gainMapCanvas };
       previewResult.src = map[kind].toDataURL('image/png');
     }
+    // 重放 fade-in-up，与解码页 pivot 切换动画一致
+    previewResult.classList.remove('anim-in');
+    void previewResult.offsetWidth;
+    previewResult.classList.add('anim-in');
     $('result-show-base').classList.toggle('active',    kind === 'base');
     $('result-show-alt').classList.toggle('active',     kind === 'alternate');
     $('result-show-gainmap').classList.toggle('active', kind === 'gainmap');
@@ -375,6 +380,26 @@ function initEncodePage() {
   $('result-show-alt').addEventListener('click',     () => showResult('alternate'));
   $('result-show-gainmap').addEventListener('click', () => showResult('gainmap'));
   $('result-show-hdr').addEventListener('click',     () => showResult('hdr'));
+
+  // 移动端：在结果预览区左右滑动切换 tab（顺序与工具条按钮一致：预览→表图→里图→增益图）
+  const RESULT_ORDER = ['hdr', 'base', 'alternate', 'gainmap'];
+  const KIND_FROM_BTN: Record<string, string> = {
+    'result-show-hdr':     'hdr',
+    'result-show-base':    'base',
+    'result-show-alt':     'alternate',
+    'result-show-gainmap': 'gainmap',
+  };
+  attachSwipe(document.querySelector('#result-box .img-wrap') as HTMLElement, {
+    onSwipeLeft: () => switchResultBy(1),
+    onSwipeRight: () => switchResultBy(-1),
+  });
+  function switchResultBy(dir: number) {
+    if (!encoded) return;
+    const activeBtn = document.querySelector('.result-toolbar button.active') as HTMLElement | null;
+    const cur = RESULT_ORDER.indexOf(KIND_FROM_BTN[activeBtn?.id ?? ''] ?? 'hdr');
+    if (cur < 0) return;
+    showResult(RESULT_ORDER[(cur + dir + RESULT_ORDER.length) % RESULT_ORDER.length]);
+  }
 
   // 点击结果图片打开灯箱
   previewResult.style.cursor = 'zoom-in';
@@ -539,17 +564,28 @@ document.addEventListener('astro:before-preparation', () => {
     gap: 6px;
   }
   .color-swatch {
-    width: 36px;
-    height: 28px;
+    width: 40px;
+    height: var(--control-h);
     padding: 2px;
     border: 1px solid var(--border);
-    border-radius: 6px;
+    border-radius: var(--radius);
     cursor: pointer;
     background: var(--bg-input);
   }
   /* result toolbar save button positioning */
   .result-toolbar .save-btn {
     margin-left: auto;
+  }
+
+  /* 结果预览切换动画（与解码页 pivot 切换一致）。
+     注意：必须高于 global.css 的 .result-box img[src]（0,2,1），
+     且 class 移除时 animation 需为 none，计算值变化才能重放动画 */
+  #result-box img:not(.anim-in) {
+    animation: none;
+  }
+
+  #result-box img.anim-in {
+    animation: fade-in-up .25s ease both;
   }
 
   /* ── 设置面板（桌面端隐藏移动端专属元素） ─────────────── */
@@ -600,7 +636,7 @@ document.addEventListener('astro:before-preparation', () => {
       overscroll-behavior: contain;
       background: var(--bg-card);
       border: 1px solid var(--border-lo);
-      border-radius: 18px;
+      border-radius: var(--radius-xl);
       box-shadow: 0 -8px 30px rgba(0, 0, 0, .35);
       padding: 6px 14px calc(14px + env(safe-area-inset-bottom));
       transform: translateY(calc(100% + 90px));
@@ -646,8 +682,8 @@ document.addEventListener('astro:before-preparation', () => {
       gap: 10px;
     }
     .color-swatch {
-      width: 40px;
-      height: 32px;
+      width: 44px;
+      height: var(--control-h-touch);
     }
   }
 
