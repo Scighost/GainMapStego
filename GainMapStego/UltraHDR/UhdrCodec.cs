@@ -5,9 +5,9 @@ namespace GainMapStego.UltraHDR;
 public abstract class UhdrCodec
 {
 
-    public static string Version => "1.4.0";
+    public static string Version => "2.0.1";
 
-    public static string CommitHash => "5fa99b5271a3c80a13c78062d7adc6310222dd8e";
+    public static string CommitHash => "a532a8c1418890cff7ce1e90cbe59ba6ebc6fa6d";
 
 
     protected IntPtr _codecPtr;

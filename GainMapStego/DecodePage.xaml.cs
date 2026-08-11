@@ -397,7 +397,7 @@ public sealed partial class DecodePage : Page
                 string name = $"{Path.GetFileNameWithoutExtension(_imageFileName)}{suffix}{Path.GetExtension(_imageFileName)}";
                 var picker = new FileSavePicker(this.XamlRoot.ContentIslandEnvironment.AppWindowId);
                 picker.FileTypeChoices.Add("JPEG Image", new string[] { ".jpg" });
-                picker.FileTypeChoices.Add("所有文件", ["*"]);
+                picker.FileTypeChoices.Add("所有文件", new string[] { "*" });
                 picker.DefaultFileExtension = ".jpg";
                 picker.SuggestedFileName = name;
                 var fileResult = await picker.PickSaveFileAsync();

@@ -45,17 +45,17 @@ public sealed partial class MainWindow : Window
 
 
 
-    [LibraryImport("kernel32.dll", StringMarshalling = StringMarshalling.Utf8)]
-    private static partial IntPtr GetModuleHandleA(string? lpModuleName);
+    [LibraryImport("kernel32.dll", StringMarshalling = StringMarshalling.Utf16)]
+    private static partial IntPtr GetModuleHandleW(string? lpModuleName);
 
-    [LibraryImport("user32.dll", StringMarshalling = StringMarshalling.Utf8)]
-    private static partial IntPtr LoadIconA(IntPtr hInstance, string lpIconName);
+    [LibraryImport("user32.dll", StringMarshalling = StringMarshalling.Utf16)]
+    private static partial IntPtr LoadIconW(IntPtr hInstance, string lpIconName);
 
 
     private async void SetIcon()
     {
-        nint hInstance = GetModuleHandleA(null);
-        nint hIcon = LoadIconA(hInstance, "#32512");
+        nint hInstance = GetModuleHandleW(null);
+        nint hIcon = LoadIconW(hInstance, "#32512");
         AppWindow.SetIcon(Win32Interop.GetIconIdFromIcon(hIcon));
         using var stream = typeof(MainWindow).Assembly.GetManifestResourceStream("GainMapStego.favicon.ico");
         var bitmap = new BitmapImage();
