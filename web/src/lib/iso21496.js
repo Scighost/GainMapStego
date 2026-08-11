@@ -870,8 +870,8 @@ export function packGainmapJpeg({ baseJpegBytes, gainmapJpegBytes, metadata }) {
   const isoSecondaryData = serializeIsoMetadataToBinary(effectiveMeta);
   const secondaryIso = createAppSegment(0xe2, concatBytes(isoNs, isoSecondaryData));
 
-  const baseBody    = baseJpegWithIcc.slice(2);  // everything after SOI
-  const gainmapBody = gainmapJpegBytes.slice(2); // everything after SOI (ICC kept as-is)
+  const baseBody    = baseJpegWithIcc.subarray(2);  // everything after SOI
+  const gainmapBody = gainmapJpegBytes.subarray(2); // everything after SOI (ICC kept as-is)
 
   // secondary image total size = SOI + ISO APP2 + gainmap body
   const secondaryImageSize = 2 + secondaryIso.length + gainmapBody.length;
@@ -893,20 +893,18 @@ export function packGainmapJpeg({ baseJpegBytes, gainmapJpegBytes, metadata }) {
 
   const mpf = createAppSegment(0xe2, buildMpfPayload(primaryImageSize, secondaryImageSize, secondaryOffset));
 
-  // primary: SOI → ISO(version) → MPF → base body
-  const primary = concatBytes(
-    new Uint8Array([0xff, 0xd8]),
-    primaryIsoVersion,
-    mpf,
-    baseBody,
-  );
-  // secondary: SOI → ISO(full metadata) → gainmap body
-  const secondary = concatBytes(
-    new Uint8Array([0xff, 0xd8]),
-    secondaryIso,
-    gainmapBody,
-  );
-  return concatBytes(primary, secondary);
+  // 单次分配最终文件大小并就地写入，避免中间的 primary/secondary 数组
+  // 对多 MB 的 JPEG 主体做重复拷贝
+  const out = new Uint8Array(primaryImageSize + secondaryImageSize);
+  let p = 0;
+  out[p++] = 0xff; out[p++] = 0xd8;                 // primary: SOI
+  out.set(primaryIsoVersion, p); p += primaryIsoVersion.length;
+  out.set(mpf, p); p += mpf.length;
+  out.set(baseBody, p); p += baseBody.length;
+  out[p++] = 0xff; out[p++] = 0xd8;                 // secondary: SOI
+  out.set(secondaryIso, p); p += secondaryIso.length;
+  out.set(gainmapBody, p);
+  return out;
 }
 
 export function unpackGainmapJpeg(bytes) {
@@ -914,7 +912,7 @@ export function unpackGainmapJpeg(bytes) {
   if (baseEnd < 4) {
     throw new Error('不是合法的 JPG 图片');
   }
-  const baseJpegBytes = bytes.slice(0, baseEnd);
+  const baseJpegBytes = bytes.subarray(0, baseEnd);
 
   let secondaryStart = findSecondSoiAfter(bytes, baseEnd);
   let secondarySize = 0;
@@ -943,14 +941,14 @@ export function unpackGainmapJpeg(bytes) {
 
   const secondaryEnd = findEoiAfter(bytes, secondaryStart + 2);
   const gainmapJpegBytes = secondaryEnd > secondaryStart
-    ? bytes.slice(secondaryStart, secondaryEnd)
+    ? bytes.subarray(secondaryStart, secondaryEnd)
     : (secondarySize > 0 && secondaryStart + secondarySize <= bytes.length
-      ? bytes.slice(secondaryStart, secondaryStart + secondarySize)
-      : bytes.slice(secondaryStart));
+      ? bytes.subarray(secondaryStart, secondaryStart + secondarySize)
+      : bytes.subarray(secondaryStart));
 
   let parsedMetadata = extractIsoMetadataFromJpeg(gainmapJpegBytes);
   if (!parsedMetadata) {
-    parsedMetadata = extractIsoMetadataFromJpeg(bytes.slice(secondaryStart));
+    parsedMetadata = extractIsoMetadataFromJpeg(bytes.subarray(secondaryStart));
   }
   if (!parsedMetadata) {
     parsedMetadata = extractIsoMetadataFromJpeg(baseJpegBytes);

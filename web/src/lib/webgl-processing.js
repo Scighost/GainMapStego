@@ -85,7 +85,7 @@ function glToCanvas(glCanvas, width, height) {
   const out = document.createElement('canvas');
   out.width  = width;
   out.height = height;
-  out.getContext('2d', { willReadFrequently: true }).drawImage(glCanvas, 0, 0);
+  out.getContext('2d').drawImage(glCanvas, 0, 0);
   return out;
 }
 

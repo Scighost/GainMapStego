@@ -850,7 +850,7 @@ input[type="range"] {
 /* quick-decode section */
 .home-decode {
   max-width: 900px;
-  margin: 0 auto 88px;
+  margin: 0 auto 24px;
   padding: 0 32px;
 }
 
@@ -980,25 +980,36 @@ input[type="range"] {
   background: var(--bg) !important;
 }
 
-/* ── Pivot 预览（三图合一，解码页/首页共用） ─────────────── */
+/* ── Pivot 预览（三图合一，解码页/首页/合成页共用） ─────── */
 .pivot-tab {
   flex-shrink: 0;
 }
 
+/* 滑动容器：面板绝对定位层叠，容器裁切水平溢出 */
+.img-wrap:has(.pivot-panel) {
+  position: relative;
+  overflow: hidden;
+  touch-action: pan-y;
+}
+
+/* 面板横排位移（translateX(i*100%) 由 pivot.js 统一写入），
+   .dragging 期间关闭 transition，实现拖动跟手 */
 .pivot-panel {
-  display: none;
-}
-
-.pivot-panel.active {
   display: block;
-  /* display 切换会重放该动画，实现 tab 切换淡入 */
-  animation: fade-in-up .25s ease both;
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  padding: 6px;
+  object-fit: contain;
+  /* 保证面板始终在占位元素之上（Chrome 中带 opacity 的 flex 项会叠在
+     绝对定位元素上面，拦截点击） */
+  z-index: 1;
+  transition: transform .3s cubic-bezier(.25, .8, .25, 1);
 }
 
-/* 无 src 的空 img 不显示（即使处于激活 tab） */
-.pivot-panel.active:not([src]),
-.pivot-panel.active[src=""] {
-  display: none;
+.pivot-panel.dragging {
+  transition: none;
 }
 
 /* 图片就位后隐藏占位文字 */
@@ -1024,6 +1035,8 @@ img[src=""] {
   opacity: .5;
   padding: 20px;
   text-align: center;
+  /* 纯提示文字，不拦截图片点击（与 .zone-placeholder 一致） */
+  pointer-events: none;
 }
 
 /* ── Responsive ───────────────────────────────────────────── */
@@ -1032,6 +1045,10 @@ img[src=""] {
     grid-template-columns: 1fr;
     padding: 12px;
     gap: 12px;
+  }
+
+  .home-decode {
+    margin-bottom: 12px;
   }
 
   .workspace {
@@ -1219,18 +1236,6 @@ img[src=""] {
   background: var(--border-lo);
 }
 
-/* ── Animations ──────────────────────────────────────────── */
-@keyframes fade-in-up {
-  from {
-    opacity: 0;
-    transform: translateY(12px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
 /* ── Collapsed drop target (home page after decode) ──────── */
 .home-drop-target.collapsed {
   padding: 14px 20px;
@@ -1311,12 +1316,6 @@ img[src=""] {
   .drop-zone.drag-over {
     box-shadow: 0 0 0 3px var(--accent-bg), inset 0 0 12px var(--accent-bg);
     transform: scale(1.005);
-  }
-
-  /* Smooth image appearance */
-  .drop-zone img[src],
-  .result-box img[src] {
-    animation: fade-in-up .25s ease both;
   }
 
   /* Navbar subtle backdrop blur */
@@ -1437,12 +1436,19 @@ img[src=""] {
     --encode-nav-h: calc(52px + env(safe-area-inset-top));
     --encode-bar-h: calc(66px + env(safe-area-inset-bottom));
     --encode-page-pad-y: 24px;
-    --encode-workspace-gap: 10px;
+    --encode-workspace-gap: 12px;
     /* 表图/里图各占一屏中剩余空间的一半：
        剩余空间 = 视口 - 导航栏 - 操作栏 - 工具页内边距×2 - 两行网格间距 */
     --encode-zone-h: calc((100vh - var(--encode-nav-h) - var(--encode-bar-h)
         - var(--encode-page-pad-y) - var(--encode-workspace-gap)) / 2);
-    --encode-pane-h: calc(100vh - var(--encode-nav-h) - var(--encode-bar-h));
+    /* 合成图框 + 信息框 = 视口高度 - 操作栏 - 顶部留白 - 底部留白：
+       顶部留一点边距、底部也不完全占满滚动视图，留出呼吸空间。
+       里图框与合成图框的间距交给 workspace 网格 gap（12px），
+       与其他行间距保持一致，不在框上加 margin-top */
+    --encode-pane-gap: 8px;
+    --encode-pane-gap-bottom: 12px;
+    --encode-pane-h: calc(100vh - var(--encode-bar-h)
+        - var(--encode-pane-gap) - var(--encode-pane-gap-bottom));
     /* 完成前页高恰好等于一屏；完成后追加与操作栏等高的底部空间，
        使合成图框+信息框在滚动终点恰好结束于操作栏顶部（高度相加=可用屏幕） */
     padding-bottom: 12px;
@@ -1451,7 +1457,8 @@ img[src=""] {
     .tool-page.encode-page {
       --encode-zone-h: calc((100dvh - var(--encode-nav-h) - var(--encode-bar-h)
           - var(--encode-page-pad-y) - var(--encode-workspace-gap)) / 2);
-      --encode-pane-h: calc(100dvh - var(--encode-nav-h) - var(--encode-bar-h));
+      --encode-pane-h: calc(100dvh - var(--encode-bar-h)
+          - var(--encode-pane-gap) - var(--encode-pane-gap-bottom));
     }
   }
   .tool-page.encode-page.pane-open {
@@ -1479,8 +1486,8 @@ img[src=""] {
   }
 
   /* 合成完成前隐藏合成图框与信息框；
-     完成后显示，两者高度相加等于可用屏幕高度
-     （扣除导航栏与固定操作栏，保证可同时完整显示） */
+     完成后显示，两者高度相加等于滚动视图可用高度
+     （视口 - 操作栏，导航栏滚出视口后从视口顶铺到操作栏顶） */
   .tool-page.encode-page .result-pane {
     grid-row: 3;
     grid-column: 1;
@@ -1490,7 +1497,10 @@ img[src=""] {
     display: flex;
     flex-direction: column;
     gap: 10px;
-    /* 合成图框 + 信息框 = 完整可用屏幕高度（导航栏底到操作栏顶） */
+    /* 与里图框的间距由 workspace 网格 gap 统一控制（10px），不加 margin-top；
+       底部留白：信息框不贴操作栏，整体不占满滚动视图 */
+    margin-bottom: var(--encode-pane-gap-bottom);
+    /* 合成图框 + 信息框 = 视口 - 操作栏 - 顶部留白 - 底部留白 */
     height: var(--encode-pane-h);
     min-height: 0;
   }
@@ -1500,7 +1510,6 @@ img[src=""] {
   }
   .tool-page.encode-page .result-pane #result-meta {
     flex-shrink: 0;
-    margin-bottom: 14px;
   }
 
   /* 框的尺寸固定，不随图片大小变化 */

@@ -2,88 +2,321 @@
 import BaseLayout from '../layouts/BaseLayout.astro';
 ---
 <BaseLayout>
-  <!-- ── Hero ──────────────────────────────────────────── -->
-  <section class="home-hero">
-    <h1 class="home-wordmark">Gain Map&nbsp;<em>Stego</em>&nbsp;</h1>
-    <p class="tagline">
-      一种基于增益图元数据的图像隐藏方法。<br />
-      在支持 <a href="https://sspai.com/post/94425" target="_blank" rel="noopener" class="tagline-link">Gain Map HDR</a> 的<span class="env-tip" tabindex="0" aria-label="支持的环境">环境中<span class="env-tip-popup"><span class="env-tip-title">支持展示 HDR 的环境</span><span class="env-tip-tags"><span class="env-tag">Android 15+</span><span class="env-tag">iOS 18+</span><span class="env-tag">部分浏览器</span></span></span></span>，可以直接展示隐藏的内容。
-    </p>
-    <div class="hero-cta">
-      <a href="/encode" class="btn btn-primary">开始合成</a>
-      <a href="/decode" class="btn btn-secondary">解码图片</a>
-      <a href="https://github.com/Scighost/GainMapStego" target="_blank" rel="noopener" class="btn btn-ghost">项目介绍</a>
-    </div>
+
+  <!-- ══════════ 首页视图 ══════════ -->
+  <section id="view-home" class="view">
+
+    <!-- ── Hero ──────────────────────────────────────────── -->
+    <section class="home-hero">
+      <h1 class="home-wordmark">Gain Map&nbsp;<em>Stego</em>&nbsp;</h1>
+      <p class="tagline">
+        一种基于增益图元数据的图像隐藏方法。<br />
+        在支持 <a href="https://sspai.com/post/94425" target="_blank" rel="noopener" class="tagline-link">Gain Map HDR</a> 的<span class="env-tip" tabindex="0" aria-label="支持的环境">环境中<span class="env-tip-popup"><span class="env-tip-title">支持展示 HDR 的环境</span><span class="env-tip-tags"><span class="env-tag">Android 15+</span><span class="env-tag">iOS 18+</span><span class="env-tag">部分浏览器</span></span></span></span>，可以直接展示隐藏的内容。
+      </p>
+      <div class="hero-cta">
+        <a href="#/encode" class="btn btn-primary">开始合成</a>
+        <a href="#/decode" class="btn btn-secondary">解码图片</a>
+        <a href="https://github.com/Scighost/GainMapStego" target="_blank" rel="noopener" class="btn btn-ghost">项目介绍</a>
+      </div>
+    </section>
+
+    <!-- ── Quick decode ───────────────────────────────────── -->
+    <section class="home-decode">
+      <div class="home-decode-header">
+        <h2>快速解码</h2>
+        <span class="badge">无需上传</span>
+      </div>
+      <p class="subtitle">拖入或点击选择一张由本工具生成的图片，立即在本地预览基础图、合成图和增益图。</p>
+
+      <div id="home-drop" class="home-drop-target">
+        <div class="drop-icon">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+            <path d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1"/>
+            <polyline points="8 12 12 8 16 12"/>
+            <line x1="12" y1="8" x2="12" y2="16"/>
+          </svg>
+        </div>
+        <p class="drop-title">拖入或点击选择图片</p>
+        <p class="drop-sub">所有处理均在浏览器本地完成，文件不会上传</p>
+        <input id="home-file-input" type="file" accept=".jpg,.jpeg,image/jpeg" hidden />
+      </div>
+
+      <div id="home-results" class="home-results">
+        <figure class="drop-zone static-zone" id="home-result">
+          <div class="result-toolbar" role="tablist" aria-label="图像预览">
+            <button class="pivot-tab active" type="button" role="tab" aria-selected="true" data-pivot="alt">合成图</button>
+            <button class="pivot-tab" type="button" role="tab" aria-selected="false" data-pivot="base">基础图</button>
+            <button class="pivot-tab" type="button" role="tab" aria-selected="false" data-pivot="gainmap">增益图</button>
+            <span class="zone-dim" id="hdim-active"></span>
+            <button id="hbtn-save" class="save-btn" type="button" disabled title="保存合成图">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
+                <polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+              </svg>
+              保存
+            </button>
+          </div>
+          <div class="img-wrap" role="tabpanel">
+            <img id="home-img-alt" class="pivot-panel active" alt="合成图" />
+            <img id="home-img-base" class="pivot-panel" alt="基础图" />
+            <img id="home-img-gainmap" class="pivot-panel" alt="增益图" />
+            <div class="zone-placeholder">
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                <rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/>
+                <polyline points="21 15 16 10 5 21"/>
+              </svg>
+              <span id="hph-text">合成图将显示在此</span>
+            </div>
+          </div>
+        </figure>
+      </div>
+    </section>
   </section>
 
+  <!-- ══════════ 合成视图 ══════════ -->
+  <section id="view-encode" class="view">
+    <div class="tool-page encode-page">
 
-  <!-- ── Quick decode ───────────────────────────────────── -->
-  <section class="home-decode">
-    <div class="home-decode-header">
-      <h2>快速解码</h2>
-      <span class="badge">无需上传</span>
-    </div>
-    <p class="subtitle">拖入或点击选择一张由本工具生成的图片，立即在本地预览基础图、合成图和增益图。</p>
+      <!-- ── Sidebar ─────────────────────────────────────── -->
+      <aside class="sidebar">
+        <!-- 移动端以底部面板形式展示的合成选项 -->
+        <div id="settings-body">
+          <div class="sheet-handle"></div>
+          <div class="sheet-head">
+            <h2>合成选项</h2>
+          </div>
 
-    <div id="home-drop" class="home-drop-target">
-      <div class="drop-icon">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
-          <path d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1"/>
-          <polyline points="8 12 12 8 16 12"/>
-          <line x1="12" y1="8" x2="12" y2="16"/>
-        </svg>
-      </div>
-      <p class="drop-title">拖入或点击选择图片</p>
-      <p class="drop-sub">所有处理均在浏览器本地完成，文件不会上传</p>
-      <input id="home-file-input" type="file" accept=".jpg,.jpeg,image/jpeg" hidden />
-    </div>
+          <div class="section-label">图像参数</div>
 
-    <div id="home-results" class="home-results">
-      <figure class="drop-zone static-zone" id="home-result">
-        <div class="result-toolbar" role="tablist" aria-label="图像预览">
-          <button class="pivot-tab active" type="button" role="tab" aria-selected="true" data-pivot="alt">合成图</button>
-          <button class="pivot-tab" type="button" role="tab" aria-selected="false" data-pivot="base">基础图</button>
-          <button class="pivot-tab" type="button" role="tab" aria-selected="false" data-pivot="gainmap">增益图</button>
-          <span class="zone-dim" id="hdim-active"></span>
-          <button id="hbtn-save" class="save-btn" type="button" disabled title="保存合成图">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
-              <polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
-            </svg>
-            保存
-          </button>
-        </div>
-        <div class="img-wrap" role="tabpanel">
-          <img id="home-img-alt" class="pivot-panel active" alt="合成图" />
-          <img id="home-img-base" class="pivot-panel" alt="基础图" />
-          <img id="home-img-gainmap" class="pivot-panel" alt="增益图" />
-          <div class="zone-placeholder">
-            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-              <rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/>
-              <polyline points="21 15 16 10 5 21"/>
-            </svg>
-            <span id="hph-text">合成图将显示在此</span>
+          <div class="form-row">
+            <div class="form-label">
+              图像质量
+              <span id="v-quality">90</span>
+            </div>
+            <input id="image-quality" type="range" min="1" max="100" value="90" />
+          </div>
+
+          <div class="form-row">
+            <div class="form-label">
+              输出分辨率
+              <span id="v-scale">100%</span>
+            </div>
+            <input id="image-scale" type="range" min="0.1" max="1" step="0.01" value="1" />
+          </div>
+
+          <div class="form-trio">
+            <div class="form-trio-item">
+              <div class="form-label">背景色</div>
+              <input id="bg-color" type="color" value="#ffffff" class="color-swatch" />
+            </div>
+            <div class="form-trio-item">
+              <div class="form-label">完整展示</div>
+              <div class="seg-ctrl">
+                <label class="seg-opt"><input type="radio" name="target-display" value="base" checked /><span>表图</span></label>
+                <label class="seg-opt"><input type="radio" name="target-display" value="alternate" /><span>里图</span></label>
+              </div>
+            </div>
+            <div class="form-trio-item">
+              <div class="form-label">缩放模式</div>
+              <div class="seg-ctrl">
+                <label class="seg-opt"><input type="radio" name="scale-mode" value="fit" checked /><span>适应</span></label>
+                <label class="seg-opt"><input type="radio" name="scale-mode" value="fill" /><span>填充</span></label>
+              </div>
+            </div>
+          </div>
+
+          <div class="section-label">增益图参数</div>
+
+          <div class="form-row">
+            <div class="form-label">
+              Gamma
+              <span id="v-gamma">1.0</span>
+            </div>
+            <input id="gainmap-gamma" type="range" min="0.1" max="2" step="0.1" value="1" />
+          </div>
+
+          <div class="form-row">
+            <div class="form-label">
+              Offset
+              <span id="v-offset">1.0</span>
+            </div>
+            <input id="gainmap-offset" type="range" min="0.1" max="2" step="0.1" value="1" />
           </div>
         </div>
-      </figure>
+
+        <div class="btn-group">
+          <button id="btn-encode" class="btn-primary">合成</button>
+          <button id="btn-cancel" style="display:none">取消</button>
+          <button id="btn-reset">制作新图片</button>
+          <button id="btn-settings" class="btn-settings" aria-label="打开合成选项" aria-expanded="false">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="3"/>
+              <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 11-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 110-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 114 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 110 4h-.09a1.65 1.65 0 00-1.51 1z"/>
+            </svg>
+          </button>
+        </div>
+
+        <!-- 信息框为单实例，JS 按视口宽度在侧栏与合成图框下方之间移动 -->
+        <input id="file-base" type="file" accept="image/*" hidden />
+        <input id="file-alt"  type="file" accept="image/*" hidden />
+      </aside>
+
+      <!-- ── Workspace ───────────────────────────────────── -->
+      <section class="workspace">
+        <figure class="drop-zone" id="zone-base">
+          <figcaption>表图<span class="zone-tag opt">可选</span><span class="zone-dim" id="dim-base"></span></figcaption>
+          <div class="img-wrap">
+            <img id="preview-base" alt="表图" />
+            <div class="zone-placeholder" id="ph-base">
+              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                <rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/>
+                <polyline points="21 15 16 10 5 21"/>
+              </svg>
+              <strong>点击或拖入图片</strong>
+            </div>
+          </div>
+        </figure>
+
+        <figure class="drop-zone" id="zone-alt">
+          <figcaption>里图<span class="zone-tag req">必需</span><span class="zone-dim" id="dim-alt"></span></figcaption>
+          <div class="img-wrap">
+            <img id="preview-alt" alt="里图" />
+            <div class="zone-placeholder" id="ph-alt">
+              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                <rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/>
+                <polyline points="21 15 16 10 5 21"/>
+              </svg>
+              <strong>点击或拖入图片</strong>
+            </div>
+          </div>
+        </figure>
+
+        <div class="result-pane">
+          <div class="result-box" id="result-box">
+            <div class="result-toolbar">
+              <button id="result-show-hdr"    class="active">预览</button>
+              <button id="result-show-base">表图</button>
+              <button id="result-show-alt">里图</button>
+              <button id="result-show-gainmap">增益图</button>
+              <button id="btn-save-hdr" class="save-btn" disabled title="保存增益图 JPG">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
+                  <polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+                </svg>
+                保存
+              </button>
+            </div>
+            <div class="img-wrap">
+              <img id="preview-result-hdr" class="pivot-panel" alt="预览" />
+              <img id="preview-result-base" class="pivot-panel" alt="表图" />
+              <img id="preview-result-alt" class="pivot-panel" alt="里图" />
+              <img id="preview-result-gainmap" class="pivot-panel" alt="增益图" />
+              <div class="result-placeholder" id="result-placeholder">合成结果将在此处显示</div>
+            </div>
+          </div>
+
+          <div id="result-meta" class="meta-dl-wrap" style="display:none">
+            <div id="encode-status" class="status-bar"></div>
+            <div id="result-rows"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 移动端设置面板的背景遮罩 -->
+      <div id="settings-backdrop" class="settings-backdrop"></div>
+
     </div>
   </section>
+
+  <!-- ══════════ 解码视图 ══════════ -->
+  <section id="view-decode" class="view">
+    <div class="tool-page decode-page">
+
+      <!-- ── Sidebar ─────────────────────────────────────── -->
+      <aside class="sidebar">
+        <h2>解码</h2>
+        <p>
+          打开由本工具生成的图片，解析其中的基础图、增益图和合成图。
+        </p>
+
+        <div id="sidebar-drop" class="sidebar-drop-zone">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <path d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1"/>
+            <polyline points="8 12 12 8 16 12"/><line x1="12" y1="8" x2="12" y2="16"/>
+          </svg>
+          <strong style="font-size:0.95rem">点击或拖入增益图 JPG</strong>
+        </div>
+
+        <div id="decode-status" class="status-bar"></div>
+
+        <div id="decode-meta" class="meta-dl-wrap" style="flex:1;min-height:80px;overflow-y:auto" hidden></div>
+
+        <input id="file-input" type="file" accept=".jpg,.jpeg,image/jpeg" hidden />
+      </aside>
+
+      <!-- ── Workspace ───────────────────────────────────── -->
+      <section class="workspace" id="decode-workspace">
+        <figure class="drop-zone static-zone" id="zone-result">
+          <div class="result-toolbar" role="tablist" aria-label="图像预览">
+            <button class="pivot-tab active" type="button" role="tab" aria-selected="true" data-pivot="alt">合成图</button>
+            <button class="pivot-tab" type="button" role="tab" aria-selected="false" data-pivot="base">基础图</button>
+            <button class="pivot-tab" type="button" role="tab" aria-selected="false" data-pivot="gainmap">增益图</button>
+            <span class="zone-dim" id="dim-d-active"></span>
+            <button id="btn-save" class="save-btn" type="button" disabled title="保存合成图">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
+                <polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+              </svg>
+              保存
+            </button>
+          </div>
+          <div class="img-wrap" role="tabpanel">
+            <img id="img-alt" class="pivot-panel active" alt="合成图" />
+            <img id="img-base" class="pivot-panel" alt="基础图" />
+            <img id="img-gainmap" class="pivot-panel" alt="增益图" />
+            <div class="zone-placeholder">
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                <rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/>
+                <polyline points="21 15 16 10 5 21"/>
+              </svg>
+              <span id="ph-decode-text">合成图将显示在此</span>
+            </div>
+          </div>
+        </figure>
+      </section>
+
+    </div>
+  </section>
+
 </BaseLayout>
 
 <script>
-import { unpackGainmapJpeg } from '../lib/iso21496.js';
+import { buildGainMap, composeBaseAndAlternate } from '../lib/image-processing.js';
+import { createIsoMetadata, packGainmapJpeg } from '../lib/iso21496.js';
 import { reconstructAlternateFromGainMap } from '../lib/image-processing.js';
-import { blobToImage, canvasToJpegBlob, downloadBlob, fileToUint8Array, imageBitmapToCanvas, scrollIntoViewIfNeeded } from '../lib/utils.js';
+import { unpackGainmapJpeg } from '../lib/iso21496.js';
+import { blobToImage, canvasToJpegBlob, downloadBlob, fileSizeText, fileToUint8Array, imageBitmapToCanvas, scrollIntoViewIfNeeded } from '../lib/utils.js';
 import { createPivot } from '../lib/pivot.js';
 import { openLightbox } from '../lib/lightbox.js';
 
+/* ═══════════════════ 首页视图：Hero + 快速解码 ═══════════════════ */
 function initHomePage() {
   const dropTarget  = document.getElementById('home-drop');
   const fileInput   = document.getElementById('home-file-input') as HTMLInputElement | null;
   const resultsEl   = document.getElementById('home-results');
+  const homeDecode  = document.querySelector<HTMLElement>('.home-decode');
 
   // 如果元素不存在，说明不在首页，直接返回
   if (!dropTarget || !fileInput || !resultsEl) return;
+
+  // 解码完成后：滚动到“快速解码”标题（顶部留 16px 边距），
+  // 解码图框在下方占满剩余视口（配合 .home-decode.results-open 的 flex 布局）
+  function scrollToQuickDecode() {
+    const header = document.querySelector<HTMLElement>('.home-decode-header');
+    if (!header) return;
+    const top = header.getBoundingClientRect().top + window.scrollY - 16;
+    window.scrollTo({ top: Math.max(0, top), behavior: 'smooth' });
+  }
 
   const imgBase     = document.getElementById('home-img-base') as HTMLImageElement;
   const imgGainmap  = document.getElementById('home-img-gainmap') as HTMLImageElement;
@@ -94,12 +327,15 @@ function initHomePage() {
   /* ── Pivot 预览（与解码页一致） ───────────────────────── */
   type PivotTab = 'alt' | 'base' | 'gainmap';
   const PIVOT_ORDER: PivotTab[] = ['alt', 'base', 'gainmap'];
+  // 按钮须在视图内查找：单页化后首页/解码页都有 data-pivot 按钮，
+  // 全局 querySelector 会拿到文档中靠前的首页按钮
+  const homeResult = document.getElementById('home-result')!;
   const pivot = createPivot({
     order: PIVOT_ORDER,
     buttons: {
-      alt:     document.querySelector<HTMLButtonElement>('[data-pivot="alt"]')!,
-      base:    document.querySelector<HTMLButtonElement>('[data-pivot="base"]')!,
-      gainmap: document.querySelector<HTMLButtonElement>('[data-pivot="gainmap"]')!,
+      alt:     homeResult.querySelector<HTMLButtonElement>('[data-pivot="alt"]')!,
+      base:    homeResult.querySelector<HTMLButtonElement>('[data-pivot="base"]')!,
+      gainmap: homeResult.querySelector<HTMLButtonElement>('[data-pivot="gainmap"]')!,
     },
     panels: { alt: imgAlt, base: imgBase, gainmap: imgGainmap },
     labels: { alt: '合成图', base: '基础图', gainmap: '增益图' },
@@ -158,6 +394,7 @@ function initHomePage() {
     _sourceStem = file.name.replace(/\.[^.]+$/, '');
     revokePreviewUrls();
     resultsEl!.classList.remove('visible');
+    homeDecode?.classList.remove('results-open');
     hBtnSave.disabled = true;
     // 重置预览 tab：全部显示并回到合成图
     PIVOT_ORDER.forEach(t => pivot.setDims(t, ''));
@@ -190,6 +427,8 @@ function initHomePage() {
       const [baseBitmap, gainBitmap] = await Promise.all([blobToImage(baseBlob), blobToImage(gainBlob)]);
       const baseCanvas    = imageBitmapToCanvas(baseBitmap);
       const gainMapCanvas = imageBitmapToCanvas(gainBitmap);
+      baseBitmap.close();
+      gainBitmap.close();
       const altCanvas     = reconstructAlternateFromGainMap({ baseCanvas, gainMapCanvas, metadata });
       const altBlob       = await canvasToJpegBlob(altCanvas, 90);
 
@@ -209,14 +448,16 @@ function initHomePage() {
 
       hBtnSave.disabled = false;
       resultsEl!.classList.add('visible');
+      homeDecode?.classList.add('results-open');
       // 转圈变为重新选择，结果卡片本身就是成功反馈
       setBoxResult('');
-      scrollIntoViewIfNeeded(resultsEl!);
+      scrollToQuickDecode();
     } catch {
       // 尝试将文件渲染为基础图（有效 JPEG 但无增益图）
       try {
         const bm = await blobToImage(file);
         const cv = imageBitmapToCanvas(bm);
+        bm.close();
         const plainUrl = URL.createObjectURL(file);
         _previewUrls.push(plainUrl);
         imgBase.src = plainUrl;
@@ -227,8 +468,9 @@ function initHomePage() {
         pivot.switchTab('base');
         hBtnSave.disabled = false;
         resultsEl!.classList.add('visible');
+        homeDecode?.classList.add('results-open');
         setBoxResult('<span class="drop-note">未找到增益图，仅显示原始图像</span>');
-        scrollIntoViewIfNeeded(resultsEl!);
+        scrollToQuickDecode();
       } catch (e2: any) {
         // 解码失败：在选择框内显示提醒内容
         setBoxResult(`<span class="drop-error">解码失败：${e2?.message ?? e2}</span>`);
@@ -251,24 +493,695 @@ function initHomePage() {
     const blob = blobMap[pivot.current];
     if (blob) downloadBlob(blob, nameMap[pivot.current]);
   });
-
-  /* ── Cleanup on navigation ─────────────────────────────── */
-  return () => {
-    revokePreviewUrls();
-  };
 }
 
-// 在页面加载和每次导航后初始化
-let cleanupHome: (() => void) | undefined;
-document.addEventListener('astro:page-load', () => {
-  cleanupHome = initHomePage();
-});
-document.addEventListener('astro:before-preparation', () => {
-  cleanupHome?.();
-});
+/* ═══════════════════ 合成视图 ═══════════════════ */
+function initEncodePage() {
+  const el = document.getElementById('file-base');
+  if (!el) return; // 不在编码页面，直接返回
+
+  /* ── State ─────────────────────────────────────────────── */
+  interface Encoded {
+    baseCanvas: HTMLCanvasElement;
+    alternateCanvas: HTMLCanvasElement;
+    gainMapCanvas: HTMLCanvasElement;
+    gainmapHdrBlob: Blob;
+    baseBlob: Blob;
+    gainBlob: Blob;
+    altBlob: Blob;
+  }
+
+  let baseBitmap: ImageBitmap | null = null;
+  let altBitmap:  ImageBitmap | null = null;
+  let encoded:    Encoded | null     = null;
+
+  // 输入预览的 object URL（loadImage 创建，替换/重置/离开页面时回收）
+  let _basePreviewUrl: string | null = null;
+  let _altPreviewUrl:  string | null = null;
+  function revokePreviewUrls() {
+    if (_basePreviewUrl) { URL.revokeObjectURL(_basePreviewUrl); _basePreviewUrl = null; }
+    if (_altPreviewUrl)  { URL.revokeObjectURL(_altPreviewUrl);  _altPreviewUrl = null; }
+  }
+
+  // 结果预览的 object URL（base/gainmap/alt 的 JPEG blob），切换 tab 直接复用，
+  // 避免每次点击都 toDataURL 重新编码整张图
+  let _baseUrl: string | null = null;
+  let _gainUrl: string | null = null;
+  let _altUrl:  string | null = null;
+  function revokeResultUrls() {
+    if (_hdrObjectUrl) { URL.revokeObjectURL(_hdrObjectUrl); _hdrObjectUrl = null; }
+    if (_baseUrl)      { URL.revokeObjectURL(_baseUrl);      _baseUrl = null; }
+    if (_gainUrl)      { URL.revokeObjectURL(_gainUrl);      _gainUrl = null; }
+    if (_altUrl)       { URL.revokeObjectURL(_altUrl);       _altUrl = null; }
+  }
+
+  /* ── Element refs ──────────────────────────────────────── */
+  const $  = (id: string) => document.getElementById(id)!;
+  const $i = (id: string) => $( id) as HTMLInputElement;
+
+  const fileBase    = $i('file-base');
+  const fileAlt     = $i('file-alt');
+  const previewBase = $('preview-base') as HTMLImageElement;
+  const previewAlt  = $('preview-alt')  as HTMLImageElement;
+  let _hdrObjectUrl: string | null = null;
+
+  const resultBox   = $('result-box');
+  const resultPane  = document.querySelector<HTMLElement>('.result-pane')!;
+  const toolPage    = document.querySelector<HTMLElement>('.tool-page.encode-page')!;
+  const phBase      = $('ph-base');
+  const phAlt       = $('ph-alt');
+
+  /* 结果面板显示状态：同时标记工具页，用于追加底部清除区 */
+  function setPaneVisible(on: boolean) {
+    resultPane.classList.toggle('show', on);
+    toolPage.classList.toggle('pane-open', on);
+  }
+
+  /* ── 信息框（单实例）：桌面端在侧栏按钮下方，移动端在合成图框下方 ── */
+  const metaEl       = $('result-meta');
+  const rowsEl       = $('result-rows');
+  const statusEl     = $('encode-status');
+  const sidebarEl    = document.querySelector<HTMLElement>('.sidebar')!;
+  const resultPaneEl = document.querySelector<HTMLElement>('.result-pane')!;
+  const desktopMQ    = window.matchMedia('(min-width: 901px)');
+
+  /* 移动信息框到对应父容器（元素是同一个，样式按父容器区分） */
+  function relocateMeta() {
+    const anchor = sidebarEl.querySelector('#file-base');
+    if (desktopMQ.matches) sidebarEl.insertBefore(metaEl, anchor);
+    else resultPaneEl.appendChild(metaEl);
+  }
+  relocateMeta();
+  desktopMQ.addEventListener('change', relocateMeta);
+
+  function setStatus(text: string, cls: string = '') {
+    statusEl.textContent = text;
+    statusEl.className = cls ? `status-bar ${cls}` : 'status-bar';
+  }
+  function setRows(html: string) {
+    rowsEl.innerHTML = html;
+  }
+  function setMetaVisible(on: boolean) {
+    metaEl.style.display = on ? '' : 'none';
+  }
+  function scrollStatusIntoView() {
+    if (desktopMQ.matches) {
+      statusEl.scrollIntoView({ block: 'nearest' });
+    } else {
+      scrollIntoViewIfNeeded(statusEl);
+    }
+  }
+
+  /* ── 设置面板（移动端底部弹层） ─────────────────────────── */
+  const settingsBody     = $('settings-body');
+  const settingsBackdrop = $('settings-backdrop');
+  const btnSettings      = $('btn-settings') as HTMLButtonElement;
+
+  function setSettingsOpen(open: boolean) {
+    settingsBody.classList.toggle('open', open);
+    settingsBackdrop.classList.toggle('open', open);
+    btnSettings.setAttribute('aria-expanded', String(open));
+  }
+  function closeSettings() { setSettingsOpen(false); }
+  btnSettings.addEventListener('click', () => setSettingsOpen(!settingsBody.classList.contains('open')));
+  settingsBackdrop.addEventListener('click', closeSettings);
+
+  /* ── Meta row helper ───────────────────────────────────────── */
+  const row = (k: string, v: string) =>
+    `<div class="meta-dl-row"><span class="mk">${k}</span><span class="mv">${v}</span></div>`;
+
+  /* ── Label sync ────────────────────────────────────────── */
+  function syncLabels() {
+    $('v-quality').textContent = $i('image-quality').value;
+    $('v-scale').textContent   = `${Math.round(+$i('image-scale').value * 100)}%`;
+    $('v-gamma').textContent   = (+$i('gainmap-gamma').value).toFixed(1);
+    $('v-offset').textContent  = (+$i('gainmap-offset').value).toFixed(1);
+  }
+  ['image-quality','image-scale','gainmap-gamma','gainmap-offset'].forEach(id =>
+    $(id).addEventListener('input', syncLabels)
+  );
+  syncLabels();
+
+  /* ── Save button ───────────────────────────────────────── */
+  const btnSaveHdr  = $('btn-save-hdr') as HTMLButtonElement;
+  const btnEncode   = $('btn-encode')   as HTMLButtonElement;
+  const btnCancel   = $('btn-cancel')   as HTMLButtonElement;
+  function setExports(on: boolean) { btnSaveHdr.disabled = !on; }
+  setExports(false);
+
+  let _isEncoding  = false;
+  let _cancelled   = false;
+  function setEncoding(on: boolean) {
+    _isEncoding = on;
+    if (on) {
+      _cancelled = false;
+      btnEncode.textContent = '合成中…';
+      btnEncode.classList.add('btn-running');
+      btnEncode.disabled = true;
+      btnCancel.style.display = '';
+    } else {
+      btnEncode.textContent = '合成';
+      btnEncode.classList.remove('btn-running');
+      btnEncode.disabled = false;
+      btnCancel.style.display = 'none';
+    }
+  }
+  btnCancel.addEventListener('click', () => { _cancelled = true; setEncoding(false); setStatus('已取消'); });
+
+  /* ── Image loading ─────────────────────────────────────── */
+  async function loadImage(file: File, target: 'base' | 'alt') {
+    const bm  = await blobToImage(file);
+    const url = URL.createObjectURL(file);
+    if (target === 'base') {
+      baseBitmap?.close();
+      if (_basePreviewUrl) URL.revokeObjectURL(_basePreviewUrl);
+      baseBitmap      = bm;
+      _basePreviewUrl = url;
+      previewBase.src  = url;
+      phBase.style.display = 'none';
+      ($('dim-base') as HTMLElement).textContent = `${bm.width} × ${bm.height}`;
+    } else {
+      altBitmap?.close();
+      if (_altPreviewUrl) URL.revokeObjectURL(_altPreviewUrl);
+      altBitmap       = bm;
+      _altPreviewUrl  = url;
+      previewAlt.src  = url;
+      phAlt.style.display = 'none';
+      ($('dim-alt') as HTMLElement).textContent = `${bm.width} × ${bm.height}`;
+    }
+  }
+
+  /* ── Drop zones ────────────────────────────────────────── */
+  function bindDrop(zoneId: string, target: 'base' | 'alt') {
+    const zone = $(zoneId);
+    zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('drag-over'); });
+    zone.addEventListener('dragleave', () => zone.classList.remove('drag-over'));
+    zone.addEventListener('drop', async e => {
+      e.preventDefault(); zone.classList.remove('drag-over');
+      const f = (e as DragEvent).dataTransfer?.files?.[0];
+      if (f) await loadImage(f, target);
+    });
+    zone.addEventListener('click', () => (target === 'base' ? fileBase : fileAlt).click());
+  }
+  bindDrop('zone-base', 'base');
+  bindDrop('zone-alt',  'alt');
+
+  fileBase.addEventListener('change', async e => {
+    const f = (e.target as HTMLInputElement).files?.[0];
+    if (f) await loadImage(f, 'base');
+    fileBase.value = '';
+  });
+  fileAlt.addEventListener('change', async e => {
+    const f = (e.target as HTMLInputElement).files?.[0];
+    if (f) await loadImage(f, 'alt');
+    fileAlt.value = '';
+  });
+
+  $('btn-reset').addEventListener('click', () => {
+    baseBitmap?.close();
+    altBitmap?.close();
+    baseBitmap = altBitmap = encoded = null;
+    revokePreviewUrls();
+    previewBase.removeAttribute('src');
+    previewAlt.removeAttribute('src');
+    RESULT_PANELS.forEach(p => p.removeAttribute('src'));
+    fileBase.value = '';
+    fileAlt.value  = '';
+    revokeResultUrls();
+    setRows('');
+    setMetaVisible(false);
+    setPaneVisible(false);
+    setStatus('');
+    phBase.style.display     = '';
+    phAlt.style.display      = '';
+    ($('dim-base') as HTMLElement).textContent = '';
+    ($('dim-alt') as HTMLElement).textContent  = '';
+    const ph = document.getElementById('result-placeholder');
+    if (ph) ph.style.display = '';
+    setExports(false);
+    // 移动端：回到表图/里图位置
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  });
+
+  /* ── Result preview toggle（横向滑动切换，与解码页 pivot 一致） ── */
+  const RESULT_PANELS = {
+    hdr:       $('preview-result-hdr') as HTMLImageElement,
+    base:      $('preview-result-base') as HTMLImageElement,
+    alternate: $('preview-result-alt') as HTMLImageElement,
+    gainmap:   $('preview-result-gainmap') as HTMLImageElement,
+  };
+  const RESULT_PIVOT = createPivot({
+    order: ['hdr', 'base', 'alternate', 'gainmap'],
+    buttons: {
+      hdr:       $('result-show-hdr'),
+      base:      $('result-show-base'),
+      alternate: $('result-show-alt'),
+      gainmap:   $('result-show-gainmap'),
+    },
+    panels: RESULT_PANELS,
+    labels: { hdr: '预览', base: '表图', alternate: '里图', gainmap: '增益图' },
+  });
+
+  // 点击图片打开灯箱（拖动切换后的 click 已被 slider 拦截）
+  const RESULT_LABELS: Record<string, string> = {
+    hdr: '预览', base: '表图', alternate: '里图', gainmap: '增益图',
+  };
+  (['hdr', 'base', 'alternate', 'gainmap'] as const).forEach(k => {
+    const el = RESULT_PANELS[k];
+    el.style.cursor = 'zoom-in';
+    el.addEventListener('click', () => {
+      if (!el.getAttribute('src')) return;
+      openLightbox({ src: el.src, label: RESULT_LABELS[k] });
+    });
+  });
+
+  /* ── Encode ────────────────────────────────────────────── */
+  $('btn-encode').addEventListener('click', async () => {
+    if (_isEncoding) return;
+    if (!altBitmap) {
+      setMetaVisible(true);
+      setPaneVisible(true);
+      setStatus('请先拖入或选择里图（必需项）', 'error');
+      scrollStatusIntoView();
+      return;
+    }
+    closeSettings();
+    setEncoding(true);
+    // 重新合成时先隐藏上一轮的结果
+    setPaneVisible(false);
+    setMetaVisible(false);
+    setStatus('合成中…');
+    // 让浏览器先完成一帧重绘，避免状态提示被重计算阻塞
+    await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+    try {
+      const gamma  = +$i('gainmap-gamma').value;
+      const offset = +$i('gainmap-offset').value;
+
+      const yieldFrame = () => new Promise<void>(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+
+      setStatus('正在缩放图像…');
+      await yieldFrame();
+      const { baseCanvas, alternateCanvas, outW, outH } = composeBaseAndAlternate({
+        baseBitmap,
+        alternateBitmap: altBitmap,
+        targetDisplay: (document.querySelector('input[name="target-display"]:checked') as HTMLInputElement)?.value ?? 'base',
+        imageScale: +$i('image-scale').value,
+        scaleMode: (document.querySelector('input[name="scale-mode"]:checked') as HTMLInputElement)?.value ?? 'fit',
+        backgroundColor: $i('bg-color').value,
+      });
+      if (_cancelled) return;
+
+      setStatus('正在计算增益图…');
+      await yieldFrame();
+      const gain = buildGainMap({ baseCanvas, alternateCanvas, gamma, offset });
+      const meta = createIsoMetadata({
+        gamma: [gamma, gamma, gamma],
+        offsetSdr: [offset, offset, offset],
+        offsetHdr: [offset, offset, offset],
+        minContentBoost: gain.minContentBoost,
+        maxContentBoost: gain.maxContentBoost,
+        hdrCapacityMin: 1,
+        hdrCapacityMax: Math.max(...gain.maxContentBoost, 1.0001),
+        useBaseColorSpace: 1,
+      });
+      if (_cancelled) return;
+
+      setStatus('正在编码 JPEG…');
+      await yieldFrame();
+      const quality = +$i('image-quality').value;
+      const [baseBlob, gainBlob] = await Promise.all([
+        canvasToJpegBlob(baseCanvas, quality),
+        canvasToJpegBlob(gain.gainMapCanvas, quality),
+      ]);
+      if (_cancelled) return;
+
+      setStatus('正在打包 JPEG…');
+      await yieldFrame();
+      const baseBytes   = new Uint8Array(await baseBlob.arrayBuffer());
+      const gainBytes   = new Uint8Array(await gainBlob.arrayBuffer());
+      const hdrBytes    = packGainmapJpeg({ baseJpegBytes: baseBytes, gainmapJpegBytes: gainBytes, metadata: meta });
+      const altBlob     = await canvasToJpegBlob(alternateCanvas, quality);
+      if (_cancelled) return;
+
+      encoded = {
+        baseCanvas, alternateCanvas, gainMapCanvas: gain.gainMapCanvas,
+        gainmapHdrBlob: new Blob([hdrBytes], { type: 'image/jpeg' }),
+        baseBlob, gainBlob, altBlob,
+      };
+
+      setRows([
+        row('分辨率', `${outW} × ${outH}`),
+        row('基础图', fileSizeText(baseBlob.size)),
+        row('增益图', fileSizeText(gainBlob.size)),
+        row('合成图', fileSizeText(encoded.gainmapHdrBlob.size)),
+      ].join(''));
+      setMetaVisible(true);
+      setPaneVisible(true);
+
+      setExports(true);
+      revokeResultUrls();
+      _hdrObjectUrl = URL.createObjectURL(encoded.gainmapHdrBlob);
+      _baseUrl      = URL.createObjectURL(encoded.baseBlob);
+      _gainUrl      = URL.createObjectURL(encoded.gainBlob);
+      _altUrl       = URL.createObjectURL(encoded.altBlob);
+      RESULT_PANELS.hdr.src       = _hdrObjectUrl;
+      RESULT_PANELS.base.src      = _baseUrl;
+      RESULT_PANELS.alternate.src = _altUrl;
+      RESULT_PANELS.gainmap.src   = _gainUrl;
+      RESULT_PIVOT.switchTab('hdr');
+      // 隐藏结果区占位文字
+      const ph = document.getElementById('result-placeholder');
+      if (ph) ph.style.display = 'none';
+      setStatus('✓ 合成完成', 'ok');
+      // 移动端：滚动到页面底部——.result-pane 高度 = 100dvh - 操作栏，
+      // 滚动到底（导航栏已滚出视口）时合成图框顶到视口顶、信息框底到
+      // 操作栏顶，整体占满滚动视图可用高度（滚动目标是整个文档的滚动终点，
+      // 而非框位置，避免依赖导航栏高度）
+      if (window.matchMedia('(max-width: 900px)').matches) {
+        const bottom = document.documentElement.scrollHeight - window.innerHeight;
+        window.scrollTo({ top: Math.max(0, bottom), behavior: 'smooth' });
+      } else {
+        scrollIntoViewIfNeeded(resultBox);
+      }
+    } catch (err: any) {
+      if (!_cancelled) {
+        setMetaVisible(true);
+        setPaneVisible(true);
+        setStatus(`合成失败：${err?.message ?? err}`, 'error');
+        scrollStatusIntoView();
+      }
+    } finally {
+      setEncoding(false);
+    }
+  });
+
+  /* ── Save ──────────────────────────────────────────────── */
+  btnSaveHdr.addEventListener('click', () => encoded && downloadBlob(encoded.gainmapHdrBlob, `stego_${Math.floor(Date.now()/1000)}.jpg`));
+}
+
+/* ═══════════════════ 解码视图 ═══════════════════ */
+function initDecodePage() {
+  const fileInput = document.getElementById('file-input') as HTMLInputElement | null;
+  if (!fileInput) return; // 不在解码页面，直接返回
+
+  /* ── State ─────────────────────────────────────────────── */
+  interface Decoded {
+    baseBlob:    Blob;
+    gainBlob:    Blob;
+    altBlob:     Blob;
+    baseCanvas:  HTMLCanvasElement;
+  }
+
+  let decoded: Decoded | null = null;
+  let _sourceStem = 'decoded';
+
+  // 预览用的 object URL（base/gainmap/alt 的 JPEG blob），避免对整张图做 PNG 编码
+  let _previewUrls: string[] = [];
+  function revokePreviewUrls() {
+    for (const u of _previewUrls) URL.revokeObjectURL(u);
+    _previewUrls = [];
+  }
+
+  /* ── Refs ──────────────────────────────────────────────── */
+  const imgBase    = document.getElementById('img-base')    as HTMLImageElement;
+  const imgGainmap = document.getElementById('img-gainmap') as HTMLImageElement;
+  const imgAlt     = document.getElementById('img-alt')     as HTMLImageElement;
+  const statusEl   = document.getElementById('decode-status')!;
+  const metaEl     = document.getElementById('decode-meta')!;
+
+  const btnSave    = document.getElementById('btn-save')    as HTMLButtonElement;
+
+  function setExports(on: boolean) {
+    btnSave.disabled = !on;
+  }
+  setExports(false);
+
+  /* ── Pivot 预览 ───────────────────────────────────────── */
+  type PivotTab = 'alt' | 'base' | 'gainmap';
+  const PIVOT_ORDER: PivotTab[] = ['alt', 'base', 'gainmap'];
+  // 按钮须在视图内查找：单页化后首页/解码页都有 data-pivot 按钮，
+  // 全局 querySelector 会拿到文档中靠前的首页按钮
+  const zoneResult = document.getElementById('zone-result')!;
+  const pivot = createPivot({
+    order: PIVOT_ORDER,
+    buttons: {
+      alt:     zoneResult.querySelector<HTMLButtonElement>('[data-pivot="alt"]')!,
+      base:    zoneResult.querySelector<HTMLButtonElement>('[data-pivot="base"]')!,
+      gainmap: zoneResult.querySelector<HTMLButtonElement>('[data-pivot="gainmap"]')!,
+    },
+    panels: { alt: imgAlt, base: imgBase, gainmap: imgGainmap },
+    labels: { alt: '合成图', base: '基础图', gainmap: '增益图' },
+    dimsEl: document.getElementById('dim-d-active')!,
+    placeholderEl: document.getElementById('ph-decode-text')!,
+    saveBtn: btnSave,
+  });
+
+  // 图片预览（灯箱）
+  const _decodeImgItems = [
+    { el: imgAlt,     label: '合成图' },
+    { el: imgBase,    label: '基础图' },
+    { el: imgGainmap, label: '增益图' },
+  ];
+  _decodeImgItems.forEach(({ el, label }) => {
+    el.style.cursor = 'zoom-in';
+    el.addEventListener('click', () => {
+      if (!el.getAttribute('src')) return;
+      openLightbox({ src: el.src, label });
+    });
+  });
+
+  /* ── Open / drop ───────────────────────────────────────── */
+  // 侧栏拖放区：点击 + 拖入
+  const sidebarDrop = document.getElementById('sidebar-drop')!;
+  sidebarDrop.addEventListener('click', () => fileInput.click());
+  sidebarDrop.addEventListener('dragover', e => { e.preventDefault(); sidebarDrop.classList.add('drag-over'); });
+  sidebarDrop.addEventListener('dragleave', () => sidebarDrop.classList.remove('drag-over'));
+  sidebarDrop.addEventListener('drop', e => {
+    e.preventDefault(); sidebarDrop.classList.remove('drag-over');
+    const f = (e as DragEvent).dataTransfer?.files?.[0];
+    if (f) processFile(f);
+  });
+  const sidebarDropOrigHTML = sidebarDrop.innerHTML;
+
+  fileInput.addEventListener('change', () => {
+    const f = fileInput.files?.[0];
+    if (f) processFile(f);
+  });
+
+  const workspace = document.getElementById('decode-workspace')!;
+  workspace.addEventListener('dragover', e => { e.preventDefault(); workspace.classList.add('drag-over'); });
+  workspace.addEventListener('dragleave', () => workspace.classList.remove('drag-over'));
+  workspace.addEventListener('drop', e => {
+    e.preventDefault(); workspace.classList.remove('drag-over');
+    const f = (e as DragEvent).dataTransfer?.files?.[0];
+    if (f) processFile(f);
+  });
+
+  /* ── Decode ────────────────────────────────────────────── */
+  async function processFile(file: File) {
+    _sourceStem = file.name.replace(/\.[^.]+$/, '');
+    revokePreviewUrls();
+    statusEl.textContent = '';
+    statusEl.className   = 'status-bar';
+    setExports(false);
+    // 解码期间在侧栏拖放框内显示旋转图标
+    sidebarDrop.innerHTML = `<svg class="spin-svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="9" stroke-opacity=".25"/><path d="M12 3a9 9 0 019 9" stroke-linecap="round"/></svg><span>解码中…</span>`;
+    sidebarDrop.style.pointerEvents = 'none';
+    sidebarDrop.style.cursor = 'wait';
+    imgBase.removeAttribute('src');
+    imgGainmap.removeAttribute('src');
+    imgAlt.removeAttribute('src');
+    metaEl.hidden = true;
+    metaEl.innerHTML = '';
+    // 重置预览 tab：全部显示并回到合成图
+    PIVOT_ORDER.forEach(t => pivot.setDims(t, ''));
+    pivot.setTabsVisible(PIVOT_ORDER);
+    pivot.switchTab('alt');
+
+    try {
+      const bytes = await fileToUint8Array(file);
+      const { baseJpegBytes, gainmapJpegBytes, metadata } = unpackGainmapJpeg(bytes);
+
+      const baseBlob = new Blob([baseJpegBytes],    { type: 'image/jpeg' });
+      const gainBlob = new Blob([gainmapJpegBytes], { type: 'image/jpeg' });
+
+      const [baseBitmap, gainBitmap] = await Promise.all([blobToImage(baseBlob), blobToImage(gainBlob)]);
+      const baseCanvas    = imageBitmapToCanvas(baseBitmap);
+      const gainMapCanvas = imageBitmapToCanvas(gainBitmap);
+      baseBitmap.close();
+      gainBitmap.close();
+      const altCanvas     = reconstructAlternateFromGainMap({ baseCanvas, gainMapCanvas, metadata });
+      const altBlob       = await canvasToJpegBlob(altCanvas, 90);
+
+      decoded = { baseBlob, gainBlob, altBlob, baseCanvas };
+
+      const baseUrl = URL.createObjectURL(baseBlob);
+      const gainUrl = URL.createObjectURL(gainBlob);
+      const altUrl  = URL.createObjectURL(altBlob);
+      _previewUrls = [baseUrl, gainUrl, altUrl];
+      imgBase.src    = baseUrl;
+      imgGainmap.src = gainUrl;
+      imgAlt.src     = altUrl;
+      pivot.setDims('base',    `${baseCanvas.width} × ${baseCanvas.height}`);
+      pivot.setDims('gainmap', `${gainMapCanvas.width} × ${gainMapCanvas.height}`);
+      pivot.setDims('alt',     `${altCanvas.width} × ${altCanvas.height}`);
+      pivot.switchTab('alt');
+
+      const dRow = (k: string, v: string) =>
+        `<div class="meta-dl-row"><span class="mk">${k}</span><span class="mv">${v}</span></div>`;
+      // 技术参数默认折叠：隐藏但不删除，展开可查看完整数值
+      metaEl.innerHTML = [
+        dRow('文件',   file.name),
+        dRow('大小',   fileSizeText(file.size)),
+        dRow('基础图', fileSizeText(baseBlob.size)),
+        dRow('增益图', fileSizeText(gainBlob.size)),
+        `<details class="meta-tech">` +
+          `<summary>更多</summary>` +
+          `<div class="meta-tech-body">` +
+            dRow('Gamma',     metadata.gamma.map((x: number) => x.toFixed(3)).join(', ')) +
+            dRow('OffsetSdr', metadata.offsetSdr.map((x: number) => x.toFixed(3)).join(', ')) +
+            dRow('OffsetHdr', metadata.offsetHdr.map((x: number) => x.toFixed(3)).join(', ')) +
+            dRow('minBoost',  metadata.minContentBoost.map((x: number) => x.toFixed(3)).join(', ')) +
+            dRow('maxBoost',  metadata.maxContentBoost.map((x: number) => x.toFixed(3)).join(', ')) +
+            dRow('useBaseCG', String(metadata.useBaseColorSpace)) +
+          `</div>` +
+        `</details>`,
+      ].join('');
+      metaEl.hidden = false;
+
+      setExports(true);
+      // 解码成功不显示提醒，结果卡片本身就是反馈
+      statusEl.textContent = '';
+      statusEl.className   = 'status-bar';
+      scrollIntoViewIfNeeded(workspace);
+    } catch (err: any) {
+      // 尝试将文件作为普通 JPEG 显示（有效图片但无增益图）
+      try {
+        const bm = await blobToImage(file);
+        const cv = imageBitmapToCanvas(bm);
+        bm.close();
+        const plainUrl = URL.createObjectURL(file);
+        _previewUrls.push(plainUrl);
+        imgBase.src = plainUrl;
+        pivot.setDims('base', `${cv.width} × ${cv.height}`);
+        decoded = { baseBlob: file, gainBlob: new Blob(), altBlob: new Blob(), baseCanvas: cv };
+        // 无增益图：只保留基础图 tab
+        pivot.setTabsVisible(['base']);
+        pivot.switchTab('base');
+        btnSave.disabled = false;
+        statusEl.textContent = '未找到增益图，仅显示原始图像';
+        statusEl.className   = 'status-bar';
+        scrollIntoViewIfNeeded(workspace);
+      } catch {
+        statusEl.textContent = `解码失败：${err?.message ?? err}`;
+        statusEl.className   = 'status-bar error';
+      }
+    } finally {
+      sidebarDrop.innerHTML = sidebarDropOrigHTML;
+      sidebarDrop.style.pointerEvents = '';
+      sidebarDrop.style.cursor = '';
+    }
+  }
+
+  /* ── Save ──────────────────────────────────────────────── */
+  btnSave.addEventListener('click', () => {
+    if (!decoded) return;
+    const blobMap: Record<PivotTab, Blob> = {
+      alt:     decoded.altBlob,
+      base:    decoded.baseBlob,
+      gainmap: decoded.gainBlob,
+    };
+    const nameMap: Record<PivotTab, string> = {
+      alt:     `${_sourceStem}_alternate.jpg`,
+      base:    `${_sourceStem}_base.jpg`,
+      gainmap: `${_sourceStem}_gainmap.jpg`,
+    };
+    downloadBlob(blobMap[pivot.current], nameMap[pivot.current]);
+  });
+}
+
+/* ═══════════════════ 环境提示气泡 ═══════════════════ */
+function initEnvTips() {
+  document.addEventListener('click', (e) => {
+    const tip = (e.target as Element)?.closest?.('.env-tip');
+    if (tip) {
+      e.stopPropagation();
+      tip.classList.toggle('open');
+      return;
+    }
+    document.querySelectorAll('.env-tip.open').forEach((el) => el.classList.remove('open'));
+  });
+}
+
+/* ═══════════════════ 单页 hash 路由 ═══════════════════
+   视图切换 = 纯 DOM 显示/隐藏 + html.is-tool-page（桌面端锁定 body 滚动）。
+   懒初始化：视图首次显示时才运行 init（pivot 的轨道宽度依赖可见布局）。
+   切换视图时窗口滚动清零；工具页锁定前先滚动，避免锁定后无法滚动。 */
+const ROUTES = {
+  '/':       { id: 'view-home',   title: 'Gain Map Stego',        init: initHomePage },
+  '/encode': { id: 'view-encode', title: 'Gain Map Stego · 合成', init: initEncodePage },
+  '/decode': { id: 'view-decode', title: 'Gain Map Stego · 解码', init: initDecodePage },
+} as const;
+
+const inited = new Set<string>();
+
+function parseRoute(): keyof typeof ROUTES {
+  const h = (location.hash.replace(/^#/, '') || '/') as keyof typeof ROUTES;
+  return h in ROUTES ? h : '/';
+}
+
+function showView(route: keyof typeof ROUTES) {
+  const r = ROUTES[route];
+
+  // 切换视图显示
+  document.querySelectorAll<HTMLElement>('.view').forEach(v =>
+    v.classList.toggle('active', v.id === r.id));
+
+  // 导航链接激活状态
+  document.querySelectorAll<HTMLAnchorElement>('.nav-link[data-route]').forEach(a =>
+    a.classList.toggle('active', a.dataset.route === route));
+
+  // 先回顶再锁定滚动（桌面端工具页 html/body overflow:hidden）
+  window.scrollTo(0, 0);
+  document.documentElement.scrollTop = 0;
+  document.body.scrollTop = 0;
+  document.documentElement.classList.toggle('is-tool-page', route !== '/');
+
+  document.title = r.title;
+
+  // 懒初始化（pivot 轨道宽度等依赖可见布局）
+  if (!inited.has(r.id)) {
+    inited.add(r.id);
+    r.init();
+  }
+
+  // 焦点移到视图（preventScroll 避免二次滚动）
+  const el = document.getElementById(r.id);
+  el?.setAttribute('tabindex', '-1');
+  el?.focus({ preventScroll: true });
+}
+
+window.addEventListener('hashchange', () => showView(parseRoute()));
+showView(parseRoute());
+initEnvTips();
 </script>
 
 <style>
+  /* ── 单页视图切换 ─────────────────────────────────────── */
+  .view { display: none; }
+  .view.active { display: block; }
+
+  /* 桌面端工具页：视图占满导航栏以下剩余高度（配合 html.is-tool-page） */
+  @media (min-width: 901px) {
+    html.is-tool-page .view.active {
+      display: flex;
+      flex-direction: column;
+      flex: 1;
+      min-height: 0;
+    }
+  }
+
+  /* ── 首页 ──────────────────────────────────────────────── */
   .tagline-link {
     color: var(--accent);
     text-decoration: none;
@@ -294,6 +1207,38 @@ document.addEventListener('astro:before-preparation', () => {
     border: 1px solid var(--border-lo);
     border-radius: var(--radius-lg);
     min-height: 380px;
+  }
+
+  /* 解码完成后：滚动定位到“快速解码”标题（顶部 16px 边距），
+     解码图框占满剩余视口高度，底部 margin 桌面端 24px、移动端 12px
+     （覆盖 global.css 的 88px；min-height 同步减去该值，
+     使框底距视口底的可见留白等于 margin）。
+     注意：16px 需与 scrollToQuickDecode 中的滚动偏移保持一致 */
+  .home-decode.results-open {
+    display: flex;
+    flex-direction: column;
+    --home-decode-bottom-gap: 24px;
+    margin-bottom: var(--home-decode-bottom-gap);
+    min-height: calc(100vh - 16px - var(--home-decode-bottom-gap));
+  }
+  @supports (height: 100dvh) {
+    .home-decode.results-open {
+      min-height: calc(100dvh - 16px - var(--home-decode-bottom-gap));
+    }
+  }
+  @media (max-width: 900px) {
+    .home-decode.results-open {
+      --home-decode-bottom-gap: 12px;
+    }
+  }
+  .home-decode.results-open .home-results {
+    flex: 1;
+    min-height: 260px;
+    display: flex;
+  }
+  .home-decode.results-open .home-results .drop-zone {
+    flex: 1;
+    min-height: 0;
   }
 
   img:not([src]),
@@ -393,23 +1338,246 @@ document.addEventListener('astro:before-preparation', () => {
     pointer-events: auto;
     transform: translateX(-50%) translateY(0);
   }
-</style>
 
-<script>
-  let _envTipsBound = false;
-  function initEnvTips() {
-    if (_envTipsBound) return;
-    _envTipsBound = true;
-    document.addEventListener('click', (e) => {
-      const tip = (e.target as Element)?.closest?.('.env-tip');
-      if (tip) {
-        e.stopPropagation();
-        tip.classList.toggle('open');
-        return;
-      }
-      document.querySelectorAll('.env-tip.open').forEach((el) => el.classList.remove('open'));
-    });
+  /* ── 合成页 ────────────────────────────────────────────── */
+  /* form-trio: 3 items side-by-side (color swatch + 2 seg-ctrls) */
+  .form-trio {
+    display: grid;
+    grid-template-columns: auto 1fr 1fr;
+    gap: 8px 12px;
+    align-items: end;
+  }
+  .form-trio-item {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .color-swatch {
+    width: 40px;
+    height: var(--control-h);
+    padding: 2px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    cursor: pointer;
+    background: var(--bg-input);
+  }
+  /* result toolbar save button positioning */
+  .result-toolbar .save-btn {
+    margin-left: auto;
   }
 
-  document.addEventListener('astro:page-load', initEnvTips);
-</script>
+  /* ── 设置面板（桌面端隐藏移动端专属元素） ─────────────── */
+  .btn-settings {
+    display: none;
+  }
+  .sheet-handle,
+  #settings-backdrop {
+    display: none;
+  }
+
+  /* Result box spans full width on mobile */
+  @media (max-width: 900px) {
+    .result-box {
+      grid-column: 1 / -1;
+    }
+
+    /* 设置按钮只在移动端底部操作栏显示 */
+    .btn-settings {
+      display: inline-flex;
+    }
+
+    /* 遮罩层 */
+    #settings-backdrop {
+      display: block;
+      position: fixed;
+      inset: 0;
+      z-index: 205;
+      background: rgba(0, 0, 0, .45);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity .2s ease;
+    }
+    #settings-backdrop.open {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    /* 底部设置面板 */
+    #settings-body {
+      position: fixed;
+      left: 10px;
+      right: 10px;
+      bottom: calc(72px + env(safe-area-inset-bottom));
+      z-index: 210;
+      max-height: min(72dvh, 560px);
+      overflow-y: auto;
+      overscroll-behavior: contain;
+      background: var(--bg-card);
+      border: 1px solid var(--border-lo);
+      border-radius: var(--radius-xl);
+      box-shadow: 0 -8px 30px rgba(0, 0, 0, .35);
+      padding: 6px 14px calc(14px + env(safe-area-inset-bottom));
+      transform: translateY(calc(100% + 90px));
+      opacity: 0;
+      pointer-events: none;
+      transition: transform .28s cubic-bezier(.32, .72, .24, 1), opacity .22s ease;
+    }
+    #settings-body.open {
+      transform: none;
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .sheet-handle {
+      display: block;
+      width: 36px;
+      height: 4px;
+      border-radius: 2px;
+      background: var(--border);
+      margin: 4px auto 10px;
+    }
+
+    .sheet-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+    .sheet-head h2 {
+      margin: 0;
+    }
+  }
+
+  @media (max-width: 640px) {
+    .form-trio {
+      grid-template-columns: 1fr 1fr;
+      gap: 8px 10px;
+    }
+    .form-trio-item:first-child {
+      grid-column: 1 / -1;
+      flex-direction: row;
+      align-items: center;
+      gap: 10px;
+    }
+    .color-swatch {
+      width: 44px;
+      height: var(--control-h-touch);
+    }
+  }
+
+  @media (max-width: 380px) {
+    .form-trio {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  /* ── 解码页 ────────────────────────────────────────────── */
+  /* ── 三图合一预览（pivot tab） ─────────────────────────── */
+  /* 去掉 workspace 外框，三合一框与左侧解码框对齐 */
+  #decode-workspace {
+    background: transparent;
+    border: none;
+    border-radius: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+  }
+
+  #zone-result {
+    flex: 1;
+    min-height: 320px;
+    background: var(--bg-card);
+    border: 1px solid var(--border-lo);
+    border-radius: var(--radius-lg);
+  }
+
+  /* 拖入图片时的高亮反馈（外框已移除，落在三合一框上） */
+  #decode-workspace.drag-over #zone-result {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-bg), inset 0 0 12px var(--accent-bg);
+  }
+
+  #zone-result .img-wrap {
+    min-height: 0;
+  }
+  /* 无文件时隐藏信息区（hidden 属性需压过 .meta-dl-wrap 的 display:flex） */
+  #decode-meta[hidden] {
+    display: none;
+  }
+  /* 信息框融入侧栏，去掉圆角边框 */
+  #decode-meta {
+    background: none;
+    border: none;
+    border-radius: 0;
+    padding: 0 2px;
+  }
+  /* 去掉状态栏上方的横线（移动端边框一并去掉） */
+  #decode-status {
+    border: none;
+    background: none;
+  }
+  /* 侧栏拖放区 */
+  .sidebar-drop-zone {
+    border: 1.5px dashed var(--border);
+    border-radius: var(--radius);
+    padding: 36px 12px;
+    min-height: 140px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+    color: var(--text-dim);
+    font-size: var(--fs-xs);
+    text-align: center;
+    transition: border-color .18s, background .18s;
+    background: var(--bg);
+    user-select: none;
+  }
+  .sidebar-drop-zone svg { opacity: .4; transition: opacity .18s, transform .25s cubic-bezier(.34,1.56,.64,1); }
+  .sidebar-drop-zone:hover,
+  .sidebar-drop-zone.drag-over {
+    border-color: var(--accent);
+    background: var(--accent-bg);
+    color: var(--accent);
+  }
+  .sidebar-drop-zone:hover svg,
+  .sidebar-drop-zone.drag-over svg { opacity: .75; transform: translateY(-3px) scale(1.08); }
+  /* spinner inside placeholder during decode */
+  .spin-svg { opacity: .5; }
+
+  @media (max-width: 640px) {
+    .sidebar-drop-zone {
+      padding: 24px 12px;
+      min-height: 110px;
+    }
+  }
+
+  /* 移动端：侧栏与合成图框纵向排列，合成图框占满导航栏以下剩余视口高度 */
+  @media (max-width: 900px) {
+    .tool-page.decode-page {
+      display: flex;
+      flex-direction: column;
+      min-height: calc(100vh - 52px - env(safe-area-inset-top));
+    }
+    @supports (height: 100dvh) {
+      .tool-page.decode-page {
+        min-height: calc(100dvh - 52px - env(safe-area-inset-top));
+      }
+    }
+    .tool-page.decode-page .workspace {
+      flex: 1;
+      min-height: 320px;
+    }
+  }
+
+  @media (max-width: 480px) {
+    .sidebar-drop-zone {
+      padding: 20px 10px;
+      min-height: 100px;
+    }
+    .sidebar-drop-zone strong {
+      font-size: 0.88rem;
+    }
+  }
+</style>
