@@ -291,8 +291,13 @@ export function buildGainMapGL({ baseCanvas, alternateCanvas, gamma = 1, offset 
   gl.bindFramebuffer(gl.FRAMEBUFFER, fbo);
   gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, floatTex, 0);
   const fbStatus = gl.checkFramebufferStatus(gl.FRAMEBUFFER);
-  if (fbStatus !== gl.FRAMEBUFFER_COMPLETE)
+  if (fbStatus !== gl.FRAMEBUFFER_COMPLETE) {
+    // 失败前清理已创建的 GPU 资源：context 是模块级单例，复用多次，
+    // 不删除的话每次失败都会残留一份整幅浮点纹理 + FBO
+    gl.deleteTexture(floatTex);
+    gl.deleteFramebuffer(fbo);
     throw new Error(`Float FBO not complete (status=${fbStatus}); falling back to CPU`);
+  }
 
   useProgram(gl, gain1);
   const texBase = uploadCanvasTexture(gl, baseCanvas,      0);

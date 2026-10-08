@@ -34,6 +34,7 @@ export function composeBaseAndAlternate({
   imageScale,
   scaleMode,
   backgroundColor,
+  transparent = false,
 }) {
   const srcBaseW = baseBitmap?.width ?? alternateBitmap.width;
   const srcBaseH = baseBitmap?.height ?? alternateBitmap.height;
@@ -50,8 +51,11 @@ export function composeBaseAndAlternate({
   baseCanvas.width = outW;
   baseCanvas.height = outH;
   const baseCtx = baseCanvas.getContext('2d', { willReadFrequently: true });
-  baseCtx.fillStyle = backgroundColor;
-  baseCtx.fillRect(0, 0, outW, outH);
+  // APNG 输出保留透明区域（支持 alpha），其余输出用背景色铺底
+  if (!transparent) {
+    baseCtx.fillStyle = backgroundColor;
+    baseCtx.fillRect(0, 0, outW, outH);
+  }
 
   if (baseBitmap) {
     const r = fitRect(srcBaseW, srcBaseH, outW, outH, scaleMode);
@@ -62,8 +66,10 @@ export function composeBaseAndAlternate({
   altCanvas.width = outW;
   altCanvas.height = outH;
   const altCtx = altCanvas.getContext('2d', { willReadFrequently: true });
-  altCtx.fillStyle = backgroundColor;
-  altCtx.fillRect(0, 0, outW, outH);
+  if (!transparent) {
+    altCtx.fillStyle = backgroundColor;
+    altCtx.fillRect(0, 0, outW, outH);
+  }
   const rAlt = fitRect(srcAltW, srcAltH, outW, outH, scaleMode);
   altCtx.drawImage(alternateBitmap, rAlt.x, rAlt.y, rAlt.w, rAlt.h);
 

@@ -850,8 +850,8 @@ input[type="range"] {
 /* quick-decode section */
 .home-decode {
   max-width: 900px;
-  margin: 0 auto 24px;
-  padding: 0 32px;
+  margin: 0 auto;
+  padding: 0 32px 12px;
 }
 
 .home-decode-header {
@@ -1045,10 +1045,6 @@ img[src=""] {
     grid-template-columns: 1fr;
     padding: 12px;
     gap: 12px;
-  }
-
-  .home-decode {
-    margin-bottom: 12px;
   }
 
   .workspace {
@@ -1434,7 +1430,7 @@ img[src=""] {
        pad-y = 工具页上下内边距之和（12px × 2）；
        gap = workspace 网格两行之间的间距（须与 .workspace 的 gap 保持一致） */
     --encode-nav-h: calc(52px + env(safe-area-inset-top));
-    --encode-bar-h: calc(66px + env(safe-area-inset-bottom));
+    --encode-bar-h: calc(58px + env(safe-area-inset-bottom));
     --encode-page-pad-y: 24px;
     --encode-workspace-gap: 12px;
     /* 表图/里图各占一屏中剩余空间的一半：
@@ -1536,27 +1532,29 @@ img[src=""] {
     z-index: 200;
     display: flex;
     gap: 8px;
-    padding: 10px 12px calc(10px + env(safe-area-inset-bottom));
+    padding: 8px 12px calc(8px + env(safe-area-inset-bottom));
     background: var(--bg-card);
     background: color-mix(in srgb, var(--bg-card) 92%, transparent);
     -webkit-backdrop-filter: blur(14px) saturate(1.3);
     backdrop-filter: blur(14px) saturate(1.3);
     border-top: 1px solid var(--border-lo);
-    box-shadow: 0 -6px 20px rgba(0, 0, 0, .22);
   }
 
   .tool-page.encode-page .btn-group button {
     flex: 1;
-    min-height: 46px;
+    min-height: 42px;
+    /* 压过 ≤640px 的 touch 高度（44px），保证栏高 = 42 + 8×2 = 58 与
+       --encode-bar-h 一致 */
+    height: 42px;
     padding: 0 8px;
     font-size: 0.88rem;
   }
 
   /* 设置按钮：图标占位，宽高一致的正方形 */
   .tool-page.encode-page .btn-group .btn-settings {
-    flex: 0 0 46px;
-    width: 46px;
-    height: 46px;
+    flex: 0 0 42px;
+    width: 42px;
+    height: 42px;
     padding: 0;
   }
 }

@@ -36,6 +36,15 @@ export async function canvasToJpegBlob(canvas, quality = 95) {
   });
 }
 
+export async function canvasToPngBlob(canvas) {
+  return await new Promise((resolve, reject) => {
+    canvas.toBlob(
+      (blob) => (blob ? resolve(blob) : reject(new Error('PNG 导出失败'))),
+      'image/png',
+    );
+  });
+}
+
 export async function fileToUint8Array(file) {
   const buffer = await file.arrayBuffer();
   return new Uint8Array(buffer);

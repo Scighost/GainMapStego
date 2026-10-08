@@ -88,7 +88,7 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 
           <div class="section-label">图像参数</div>
 
-          <div class="form-row">
+          <div class="form-row" id="row-quality">
             <div class="form-label">
               图像质量
               <span id="v-quality">90</span>
@@ -105,7 +105,7 @@ import BaseLayout from '../layouts/BaseLayout.astro';
           </div>
 
           <div class="form-trio">
-            <div class="form-trio-item">
+            <div class="form-trio-item" id="item-bg-color">
               <div class="form-label">背景色</div>
               <input id="bg-color" type="color" value="#ffffff" class="color-swatch" />
             </div>
@@ -125,22 +125,41 @@ import BaseLayout from '../layouts/BaseLayout.astro';
             </div>
           </div>
 
-          <div class="section-label">增益图参数</div>
+          <div class="section-label">输出格式</div>
 
-          <div class="form-row">
-            <div class="form-label">
-              Gamma
-              <span id="v-gamma">1.0</span>
-            </div>
-            <input id="gainmap-gamma" type="range" min="0.1" max="2" step="0.1" value="1" />
+          <div class="seg-ctrl" aria-label="输出格式">
+            <label class="seg-opt"><input type="radio" name="output-mode" value="gainmap" checked /><span>增益图参数</span></label>
+            <label class="seg-opt"><input type="radio" name="output-mode" value="apng" /><span>APNG 参数</span></label>
           </div>
 
-          <div class="form-row">
-            <div class="form-label">
-              Offset
-              <span id="v-offset">1.0</span>
+          <!-- 两种输出互斥：仅显示当前格式的参数与编码路径 -->
+          <div id="params-gainmap">
+            <div class="form-row">
+              <div class="form-label">
+                Gamma
+                <span id="v-gamma">1.0</span>
+              </div>
+              <input id="gainmap-gamma" type="range" min="0.1" max="2" step="0.1" value="1" />
             </div>
-            <input id="gainmap-offset" type="range" min="0.1" max="2" step="0.1" value="1" />
+
+            <div class="form-row">
+              <div class="form-label">
+                Offset
+                <span id="v-offset">1.0</span>
+              </div>
+              <input id="gainmap-offset" type="range" min="0.1" max="2" step="0.1" value="1" />
+            </div>
+          </div>
+
+          <div id="params-apng" style="display:none">
+            <div class="form-row">
+              <div class="form-label">
+                帧延迟
+                <span id="v-delay">1.0s</span>
+              </div>
+              <input id="apng-delay" type="range" min="0" max="2" step="0.1" value="1" />
+            </div>
+            <p class="param-note">APNG 无损且支持透明（忽略背景色与图像质量）。</p>
           </div>
         </div>
 
@@ -198,19 +217,30 @@ import BaseLayout from '../layouts/BaseLayout.astro';
               <button id="result-show-base">表图</button>
               <button id="result-show-alt">里图</button>
               <button id="result-show-gainmap">增益图</button>
-              <button id="btn-save-hdr" class="save-btn" disabled title="保存增益图 JPG">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
-                  <polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
-                </svg>
-                保存
-              </button>
+              <button id="result-show-apng">APNG</button>
+              <div class="save-actions">
+                <button id="btn-save-hdr" class="save-btn" disabled title="保存增益图 JPG">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
+                    <polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+                  </svg>
+                  保存
+                </button>
+                <button id="btn-save-apng" class="save-btn" disabled title="保存 APNG">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
+                    <polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+                  </svg>
+                  保存
+                </button>
+              </div>
             </div>
             <div class="img-wrap">
               <img id="preview-result-hdr" class="pivot-panel" alt="预览" />
               <img id="preview-result-base" class="pivot-panel" alt="表图" />
               <img id="preview-result-alt" class="pivot-panel" alt="里图" />
               <img id="preview-result-gainmap" class="pivot-panel" alt="增益图" />
+              <img id="preview-result-apng" class="pivot-panel" alt="APNG" />
               <div class="result-placeholder" id="result-placeholder">合成结果将在此处显示</div>
             </div>
           </div>
@@ -293,9 +323,10 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 <script>
 import { buildGainMap, composeBaseAndAlternate } from '../lib/image-processing.js';
 import { createIsoMetadata, packGainmapJpeg } from '../lib/iso21496.js';
+import { assembleApng } from '../lib/apng.js';
 import { reconstructAlternateFromGainMap } from '../lib/image-processing.js';
 import { unpackGainmapJpeg } from '../lib/iso21496.js';
-import { blobToImage, canvasToJpegBlob, downloadBlob, fileSizeText, fileToUint8Array, imageBitmapToCanvas, scrollIntoViewIfNeeded } from '../lib/utils.js';
+import { blobToImage, canvasToJpegBlob, canvasToPngBlob, downloadBlob, fileSizeText, fileToUint8Array, imageBitmapToCanvas, scrollIntoViewIfNeeded } from '../lib/utils.js';
 import { createPivot } from '../lib/pivot.js';
 import { openLightbox } from '../lib/lightbox.js';
 
@@ -424,7 +455,16 @@ function initHomePage() {
       const baseBlob = new Blob([baseJpegBytes],    { type: 'image/jpeg' });
       const gainBlob = new Blob([gainmapJpegBytes], { type: 'image/jpeg' });
 
-      const [baseBitmap, gainBitmap] = await Promise.all([blobToImage(baseBlob), blobToImage(gainBlob)]);
+      // 并行解码基础图与增益图；其中一个失败时关闭另一个，避免 ImageBitmap 泄漏
+      let baseBitmap: ImageBitmap;
+      let gainBitmap: ImageBitmap;
+      try {
+        [baseBitmap, gainBitmap] = await Promise.all([blobToImage(baseBlob), blobToImage(gainBlob)]);
+      } catch (err) {
+        baseBitmap?.close();
+        gainBitmap?.close();
+        throw err;
+      }
       const baseCanvas    = imageBitmapToCanvas(baseBitmap);
       const gainMapCanvas = imageBitmapToCanvas(gainBitmap);
       baseBitmap.close();
@@ -501,15 +541,32 @@ function initEncodePage() {
   if (!el) return; // 不在编码页面，直接返回
 
   /* ── State ─────────────────────────────────────────────── */
-  interface Encoded {
+  // 两种输出互斥：每次合成只生成当前格式（增益图 JPG 或 APNG）
+  type OutputMode = 'gainmap' | 'apng';
+
+  interface EncodedBase {
     baseCanvas: HTMLCanvasElement;
     alternateCanvas: HTMLCanvasElement;
-    gainMapCanvas: HTMLCanvasElement;
-    gainmapHdrBlob: Blob;
+    /** 表图预览图：增益图模式为 JPEG，APNG 模式为 PNG（可含透明通道） */
     baseBlob: Blob;
-    gainBlob: Blob;
+    /** 里图预览图：同上 */
     altBlob: Blob;
   }
+
+  interface EncodedGainmap extends EncodedBase {
+    mode: 'gainmap';
+    gainMapCanvas: HTMLCanvasElement;
+    gainmapHdrBlob: Blob;
+    gainBlob: Blob;
+  }
+
+  interface EncodedApng extends EncodedBase {
+    mode: 'apng';
+    apngBytes: Uint8Array;
+    apngBlob: Blob;
+  }
+
+  type Encoded = EncodedGainmap | EncodedApng;
 
   let baseBitmap: ImageBitmap | null = null;
   let altBitmap:  ImageBitmap | null = null;
@@ -528,11 +585,14 @@ function initEncodePage() {
   let _baseUrl: string | null = null;
   let _gainUrl: string | null = null;
   let _altUrl:  string | null = null;
+  // APNG 预览的 object URL（每次切到 APNG tab 重新创建，强制从头播放）
+  let _apngUrl: string | null = null;
   function revokeResultUrls() {
     if (_hdrObjectUrl) { URL.revokeObjectURL(_hdrObjectUrl); _hdrObjectUrl = null; }
     if (_baseUrl)      { URL.revokeObjectURL(_baseUrl);      _baseUrl = null; }
     if (_gainUrl)      { URL.revokeObjectURL(_gainUrl);      _gainUrl = null; }
     if (_altUrl)       { URL.revokeObjectURL(_altUrl);       _altUrl = null; }
+    if (_apngUrl)      { URL.revokeObjectURL(_apngUrl);      _apngUrl = null; }
   }
 
   /* ── Element refs ──────────────────────────────────────── */
@@ -616,17 +676,19 @@ function initEncodePage() {
     $('v-scale').textContent   = `${Math.round(+$i('image-scale').value * 100)}%`;
     $('v-gamma').textContent   = (+$i('gainmap-gamma').value).toFixed(1);
     $('v-offset').textContent  = (+$i('gainmap-offset').value).toFixed(1);
+    $('v-delay').textContent   = `${(+$i('apng-delay').value).toFixed(1)}s`;
   }
-  ['image-quality','image-scale','gainmap-gamma','gainmap-offset'].forEach(id =>
+  ['image-quality','image-scale','gainmap-gamma','gainmap-offset','apng-delay'].forEach(id =>
     $(id).addEventListener('input', syncLabels)
   );
   syncLabels();
 
   /* ── Save button ───────────────────────────────────────── */
-  const btnSaveHdr  = $('btn-save-hdr') as HTMLButtonElement;
-  const btnEncode   = $('btn-encode')   as HTMLButtonElement;
-  const btnCancel   = $('btn-cancel')   as HTMLButtonElement;
-  function setExports(on: boolean) { btnSaveHdr.disabled = !on; }
+  const btnSaveHdr  = $('btn-save-hdr')  as HTMLButtonElement;
+  const btnSaveApng = $('btn-save-apng') as HTMLButtonElement;
+  const btnEncode   = $('btn-encode')    as HTMLButtonElement;
+  const btnCancel   = $('btn-cancel')    as HTMLButtonElement;
+  function setExports(on: boolean) { btnSaveHdr.disabled = !on; btnSaveApng.disabled = !on; }
   setExports(false);
 
   let _isEncoding  = false;
@@ -647,6 +709,41 @@ function initEncodePage() {
     }
   }
   btnCancel.addEventListener('click', () => { _cancelled = true; setEncoding(false); setStatus('已取消'); });
+
+  /* ── 输出格式（增益图 JPG / APNG 互斥） ─────────────────── */
+  const rowQuality   = $('row-quality');
+  const itemBgColor  = $('item-bg-color');
+  const paramsGainmap = $('params-gainmap');
+  const paramsApng    = $('params-apng');
+
+  function currentMode(): OutputMode {
+    const checked = document.querySelector<HTMLInputElement>('input[name="output-mode"]:checked');
+    return checked?.value === 'apng' ? 'apng' : 'gainmap';
+  }
+
+  /** 参数面板、保存按钮与无效控件随输出格式切换 */
+  function applyModeUI() {
+    const apng = currentMode() === 'apng';
+    paramsGainmap.style.display = apng ? 'none' : '';
+    paramsApng.style.display    = apng ? '' : 'none';
+    btnSaveHdr.style.display    = apng ? 'none' : '';
+    btnSaveApng.style.display   = apng ? '' : 'none';
+    // APNG 无损且支持透明：图像质量与背景色不参与该模式的编码
+    $i('image-quality').disabled = apng;
+    $i('bg-color').disabled = apng;
+    rowQuality.classList.toggle('mode-disabled', apng);
+    itemBgColor.classList.toggle('mode-disabled', apng);
+  }
+
+  document.querySelectorAll<HTMLInputElement>('input[name="output-mode"]').forEach(input =>
+    input.addEventListener('change', () => {
+      applyModeUI();
+      // 已合成/正在合成的结果属于旧格式，清空后等待重新合成
+      if (_isEncoding) _cancelled = true;
+      if (encoded) clearResult();
+    })
+  );
+  applyModeUI();
 
   /* ── Image loading ─────────────────────────────────────── */
   async function loadImage(file: File, target: 'base' | 'alt') {
@@ -697,28 +794,34 @@ function initEncodePage() {
     fileAlt.value = '';
   });
 
-  $('btn-reset').addEventListener('click', () => {
-    baseBitmap?.close();
-    altBitmap?.close();
-    baseBitmap = altBitmap = encoded = null;
-    revokePreviewUrls();
-    previewBase.removeAttribute('src');
-    previewAlt.removeAttribute('src');
-    RESULT_PANELS.forEach(p => p.removeAttribute('src'));
-    fileBase.value = '';
-    fileAlt.value  = '';
+  /** 清空合成结果（保留输入图像）：切换输出格式与「制作新图片」共用 */
+  function clearResult() {
+    encoded = null;
     revokeResultUrls();
+    Object.values(RESULT_PANELS).forEach(p => p.removeAttribute('src'));
     setRows('');
     setMetaVisible(false);
     setPaneVisible(false);
     setStatus('');
+    const ph = document.getElementById('result-placeholder');
+    if (ph) ph.style.display = '';
+    setExports(false);
+  }
+
+  $('btn-reset').addEventListener('click', () => {
+    baseBitmap?.close();
+    altBitmap?.close();
+    baseBitmap = altBitmap = null;
+    clearResult();
+    revokePreviewUrls();
+    previewBase.removeAttribute('src');
+    previewAlt.removeAttribute('src');
+    fileBase.value = '';
+    fileAlt.value  = '';
     phBase.style.display     = '';
     phAlt.style.display      = '';
     ($('dim-base') as HTMLElement).textContent = '';
     ($('dim-alt') as HTMLElement).textContent  = '';
-    const ph = document.getElementById('result-placeholder');
-    if (ph) ph.style.display = '';
-    setExports(false);
     // 移动端：回到表图/里图位置
     window.scrollTo({ top: 0, behavior: 'smooth' });
   });
@@ -729,30 +832,47 @@ function initEncodePage() {
     base:      $('preview-result-base') as HTMLImageElement,
     alternate: $('preview-result-alt') as HTMLImageElement,
     gainmap:   $('preview-result-gainmap') as HTMLImageElement,
+    apng:      $('preview-result-apng') as HTMLImageElement,
   };
   const RESULT_PIVOT = createPivot({
-    order: ['hdr', 'base', 'alternate', 'gainmap'],
+    order: ['hdr', 'base', 'alternate', 'gainmap', 'apng'],
     buttons: {
       hdr:       $('result-show-hdr'),
       base:      $('result-show-base'),
       alternate: $('result-show-alt'),
       gainmap:   $('result-show-gainmap'),
+      apng:      $('result-show-apng'),
     },
     panels: RESULT_PANELS,
-    labels: { hdr: '预览', base: '表图', alternate: '里图', gainmap: '增益图' },
+    labels: { hdr: '预览', base: '表图', alternate: '里图', gainmap: '增益图', apng: 'APNG' },
   });
 
   // 点击图片打开灯箱（拖动切换后的 click 已被 slider 拦截）
   const RESULT_LABELS: Record<string, string> = {
-    hdr: '预览', base: '表图', alternate: '里图', gainmap: '增益图',
+    hdr: '预览', base: '表图', alternate: '里图', gainmap: '增益图', apng: 'APNG',
   };
-  (['hdr', 'base', 'alternate', 'gainmap'] as const).forEach(k => {
+  (['hdr', 'base', 'alternate', 'gainmap', 'apng'] as const).forEach(k => {
     const el = RESULT_PANELS[k];
     el.style.cursor = 'zoom-in';
     el.addEventListener('click', () => {
       if (!el.getAttribute('src')) return;
       openLightbox({ src: el.src, label: RESULT_LABELS[k] });
     });
+  });
+
+  /* ── APNG 预览 ────────────────────────────────────────────
+     APNG 是 APNG 模式的合成主产物，生成于「合成」阶段；
+     每次切到该 tab 新建 object URL，强制 <img> 从第 1 帧重播一遍。 */
+  function currentDelayMs() {
+    return Math.round(+$i('apng-delay').value * 1000);
+  }
+
+  $('result-show-apng').addEventListener('click', () => {
+    const result = encoded;
+    if (!result || result.mode !== 'apng') return;
+    if (_apngUrl) URL.revokeObjectURL(_apngUrl);
+    _apngUrl = URL.createObjectURL(result.apngBlob);
+    RESULT_PANELS.apng.src = _apngUrl;
   });
 
   /* ── Encode ────────────────────────────────────────────── */
@@ -776,6 +896,7 @@ function initEncodePage() {
     try {
       const gamma  = +$i('gainmap-gamma').value;
       const offset = +$i('gainmap-offset').value;
+      const mode   = currentMode();
 
       const yieldFrame = () => new Promise<void>(r => requestAnimationFrame(() => requestAnimationFrame(r)));
 
@@ -788,67 +909,117 @@ function initEncodePage() {
         imageScale: +$i('image-scale').value,
         scaleMode: (document.querySelector('input[name="scale-mode"]:checked') as HTMLInputElement)?.value ?? 'fit',
         backgroundColor: $i('bg-color').value,
+        // APNG 支持透明：不铺背景色，未覆盖区域保持 alpha=0
+        transparent: mode === 'apng',
       });
       if (_cancelled) return;
 
-      setStatus('正在计算增益图…');
-      await yieldFrame();
-      const gain = buildGainMap({ baseCanvas, alternateCanvas, gamma, offset });
-      const meta = createIsoMetadata({
-        gamma: [gamma, gamma, gamma],
-        offsetSdr: [offset, offset, offset],
-        offsetHdr: [offset, offset, offset],
-        minContentBoost: gain.minContentBoost,
-        maxContentBoost: gain.maxContentBoost,
-        hdrCapacityMin: 1,
-        hdrCapacityMax: Math.max(...gain.maxContentBoost, 1.0001),
-        useBaseColorSpace: 1,
-      });
-      if (_cancelled) return;
+      if (mode === 'apng') {
+        // ── APNG：只编码表图/里图两帧 PNG 并组装，不做增益图 ──
+        setStatus('正在编码 APNG…');
+        await yieldFrame();
+        const [baseBlob, altBlob] = await Promise.all([
+          canvasToPngBlob(baseCanvas),
+          canvasToPngBlob(alternateCanvas),
+        ]);
+        const [baseBytes, altBytes] = await Promise.all([
+          baseBlob.arrayBuffer(),
+          altBlob.arrayBuffer(),
+        ]);
+        const apngBytes = assembleApng(
+          [new Uint8Array(baseBytes), new Uint8Array(altBytes)],
+          currentDelayMs(),
+        );
+        if (_cancelled) return;
 
-      setStatus('正在编码 JPEG…');
-      await yieldFrame();
-      const quality = +$i('image-quality').value;
-      const [baseBlob, gainBlob] = await Promise.all([
-        canvasToJpegBlob(baseCanvas, quality),
-        canvasToJpegBlob(gain.gainMapCanvas, quality),
-      ]);
-      if (_cancelled) return;
+        const apngBlob = new Blob([apngBytes], { type: 'image/apng' });
+        encoded = {
+          mode: 'apng',
+          baseCanvas, alternateCanvas,
+          apngBytes, apngBlob,
+          baseBlob, altBlob,
+        };
+        setRows([
+          row('分辨率', `${outW} × ${outH}`),
+          row('表图', fileSizeText(baseBlob.size)),
+          row('里图', fileSizeText(altBlob.size)),
+          row('APNG', fileSizeText(apngBlob.size)),
+        ].join(''));
+      } else {
+        // ── 增益图：只计算增益图并打包 JPG，不做 APNG ──
+        setStatus('正在计算增益图…');
+        await yieldFrame();
+        const gain = buildGainMap({ baseCanvas, alternateCanvas, gamma, offset });
+        const meta = createIsoMetadata({
+          gamma: [gamma, gamma, gamma],
+          offsetSdr: [offset, offset, offset],
+          offsetHdr: [offset, offset, offset],
+          minContentBoost: gain.minContentBoost,
+          maxContentBoost: gain.maxContentBoost,
+          hdrCapacityMin: 1,
+          hdrCapacityMax: Math.max(...gain.maxContentBoost, 1.0001),
+          useBaseColorSpace: 1,
+        });
+        if (_cancelled) return;
 
-      setStatus('正在打包 JPEG…');
-      await yieldFrame();
-      const baseBytes   = new Uint8Array(await baseBlob.arrayBuffer());
-      const gainBytes   = new Uint8Array(await gainBlob.arrayBuffer());
-      const hdrBytes    = packGainmapJpeg({ baseJpegBytes: baseBytes, gainmapJpegBytes: gainBytes, metadata: meta });
-      const altBlob     = await canvasToJpegBlob(alternateCanvas, quality);
-      if (_cancelled) return;
+        setStatus('正在编码 JPEG…');
+        await yieldFrame();
+        const quality = +$i('image-quality').value;
+        const [baseBlob, gainBlob] = await Promise.all([
+          canvasToJpegBlob(baseCanvas, quality),
+          canvasToJpegBlob(gain.gainMapCanvas, quality),
+        ]);
+        if (_cancelled) return;
 
-      encoded = {
-        baseCanvas, alternateCanvas, gainMapCanvas: gain.gainMapCanvas,
-        gainmapHdrBlob: new Blob([hdrBytes], { type: 'image/jpeg' }),
-        baseBlob, gainBlob, altBlob,
-      };
+        setStatus('正在打包 JPEG…');
+        await yieldFrame();
+        const baseBytes = new Uint8Array(await baseBlob.arrayBuffer());
+        const gainBytes = new Uint8Array(await gainBlob.arrayBuffer());
+        const hdrBytes  = packGainmapJpeg({ baseJpegBytes: baseBytes, gainmapJpegBytes: gainBytes, metadata: meta });
+        const altBlob   = await canvasToJpegBlob(alternateCanvas, quality);
+        if (_cancelled) return;
 
-      setRows([
-        row('分辨率', `${outW} × ${outH}`),
-        row('基础图', fileSizeText(baseBlob.size)),
-        row('增益图', fileSizeText(gainBlob.size)),
-        row('合成图', fileSizeText(encoded.gainmapHdrBlob.size)),
-      ].join(''));
+        const hdrBlob = new Blob([hdrBytes], { type: 'image/jpeg' });
+        encoded = {
+          mode: 'gainmap',
+          baseCanvas, alternateCanvas, gainMapCanvas: gain.gainMapCanvas,
+          gainmapHdrBlob: hdrBlob,
+          baseBlob, gainBlob, altBlob,
+        };
+        setRows([
+          row('分辨率', `${outW} × ${outH}`),
+          row('基础图', fileSizeText(baseBlob.size)),
+          row('增益图', fileSizeText(gainBlob.size)),
+          row('合成图', fileSizeText(hdrBlob.size)),
+        ].join(''));
+      }
+
+      const result = encoded;
       setMetaVisible(true);
       setPaneVisible(true);
 
       setExports(true);
       revokeResultUrls();
-      _hdrObjectUrl = URL.createObjectURL(encoded.gainmapHdrBlob);
-      _baseUrl      = URL.createObjectURL(encoded.baseBlob);
-      _gainUrl      = URL.createObjectURL(encoded.gainBlob);
-      _altUrl       = URL.createObjectURL(encoded.altBlob);
-      RESULT_PANELS.hdr.src       = _hdrObjectUrl;
+      // 清掉上一轮的全部预览图，再按当前输出格式填充
+      Object.values(RESULT_PANELS).forEach(p => p.removeAttribute('src'));
+      _baseUrl = URL.createObjectURL(result.baseBlob);
+      _altUrl  = URL.createObjectURL(result.altBlob);
       RESULT_PANELS.base.src      = _baseUrl;
       RESULT_PANELS.alternate.src = _altUrl;
-      RESULT_PANELS.gainmap.src   = _gainUrl;
-      RESULT_PIVOT.switchTab('hdr');
+
+      if (result.mode === 'apng') {
+        _apngUrl = URL.createObjectURL(result.apngBlob);
+        RESULT_PANELS.apng.src = _apngUrl;
+        RESULT_PIVOT.setTabsVisible(['apng', 'base', 'alternate']);
+        RESULT_PIVOT.switchTab('apng');
+      } else {
+        _hdrObjectUrl = URL.createObjectURL(result.gainmapHdrBlob);
+        _gainUrl      = URL.createObjectURL(result.gainBlob);
+        RESULT_PANELS.hdr.src     = _hdrObjectUrl;
+        RESULT_PANELS.gainmap.src = _gainUrl;
+        RESULT_PIVOT.setTabsVisible(['hdr', 'base', 'alternate', 'gainmap']);
+        RESULT_PIVOT.switchTab('hdr');
+      }
       // 隐藏结果区占位文字
       const ph = document.getElementById('result-placeholder');
       if (ph) ph.style.display = 'none';
@@ -876,7 +1047,13 @@ function initEncodePage() {
   });
 
   /* ── Save ──────────────────────────────────────────────── */
-  btnSaveHdr.addEventListener('click', () => encoded && downloadBlob(encoded.gainmapHdrBlob, `stego_${Math.floor(Date.now()/1000)}.jpg`));
+  btnSaveHdr.addEventListener('click', () => {
+    if (encoded?.mode === 'gainmap') downloadBlob(encoded.gainmapHdrBlob, `stego_${Math.floor(Date.now()/1000)}.jpg`);
+  });
+
+  btnSaveApng.addEventListener('click', () => {
+    if (encoded?.mode === 'apng') downloadBlob(encoded.apngBlob, `stego_${Math.floor(Date.now()/1000)}.png`);
+  });
 }
 
 /* ═══════════════════ 解码视图 ═══════════════════ */
@@ -1005,7 +1182,16 @@ function initDecodePage() {
       const baseBlob = new Blob([baseJpegBytes],    { type: 'image/jpeg' });
       const gainBlob = new Blob([gainmapJpegBytes], { type: 'image/jpeg' });
 
-      const [baseBitmap, gainBitmap] = await Promise.all([blobToImage(baseBlob), blobToImage(gainBlob)]);
+      // 并行解码基础图与增益图；其中一个失败时关闭另一个，避免 ImageBitmap 泄漏
+      let baseBitmap: ImageBitmap;
+      let gainBitmap: ImageBitmap;
+      try {
+        [baseBitmap, gainBitmap] = await Promise.all([blobToImage(baseBlob), blobToImage(gainBlob)]);
+      } catch (err) {
+        baseBitmap?.close();
+        gainBitmap?.close();
+        throw err;
+      }
       const baseCanvas    = imageBitmapToCanvas(baseBitmap);
       const gainMapCanvas = imageBitmapToCanvas(gainBitmap);
       baseBitmap.close();
@@ -1171,6 +1357,15 @@ initEnvTips();
   .view { display: none; }
   .view.active { display: block; }
 
+  /* 视图容器是程序聚焦的非交互元素（tabindex=-1）：
+     不显示焦点环——Chrome 对程序聚焦的 tabindex 元素也会匹配
+     :focus-visible，会在整个视图周围画出 2px 蓝色 outline，
+     视觉上呈现为选择框底部的蓝色横线 */
+  .view:focus,
+  .view:focus-visible {
+    outline: none;
+  }
+
   /* 桌面端工具页：视图占满导航栏以下剩余高度（配合 html.is-tool-page） */
   @media (min-width: 901px) {
     html.is-tool-page .view.active {
@@ -1217,6 +1412,8 @@ initEnvTips();
   .home-decode.results-open {
     display: flex;
     flex-direction: column;
+    /* 初始状态的底部 padding 会改变滚动几何，此处清零保持验证过的布局 */
+    padding-bottom: 0;
     --home-decode-bottom-gap: 24px;
     margin-bottom: var(--home-decode-bottom-gap);
     min-height: calc(100vh - 16px - var(--home-decode-bottom-gap));
@@ -1352,6 +1549,22 @@ initEnvTips();
     flex-direction: column;
     gap: 6px;
   }
+  /* 输出格式参数面板：与分段控件之间留出与原先 section-label 相当的间距 */
+  #params-gainmap,
+  #params-apng {
+    margin-top: 12px;
+  }
+  /* APNG 模式下不适用的控件（图像质量 / 背景色） */
+  .mode-disabled {
+    opacity: 0.45;
+    pointer-events: none;
+  }
+  .param-note {
+    margin: 8px 0 0;
+    font-size: var(--fs-xs);
+    line-height: 1.5;
+    color: var(--text-dim);
+  }
   .color-swatch {
     width: 40px;
     height: var(--control-h);
@@ -1361,9 +1574,13 @@ initEnvTips();
     cursor: pointer;
     background: var(--bg-input);
   }
-  /* result toolbar save button positioning */
-  .result-toolbar .save-btn {
+  /* result toolbar save buttons positioning */
+  .result-toolbar .save-actions {
     margin-left: auto;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    flex-shrink: 0;
   }
 
   /* ── 设置面板（桌面端隐藏移动端专属元素） ─────────────── */
@@ -1402,12 +1619,12 @@ initEnvTips();
       pointer-events: auto;
     }
 
-    /* 底部设置面板 */
+    /* 底部设置面板（bottom 距 = 操作栏 58px + 6px 间距） */
     #settings-body {
       position: fixed;
       left: 10px;
       right: 10px;
-      bottom: calc(72px + env(safe-area-inset-bottom));
+      bottom: calc(64px + env(safe-area-inset-bottom));
       z-index: 210;
       max-height: min(72dvh, 560px);
       overflow-y: auto;

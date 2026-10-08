@@ -297,4 +297,7 @@ export function closeLightbox() {
   document.body.style.overflow = '';
   if (_overlay) _overlay.style.background = '';
   resetZoom();
+  // 释放灯箱持有的整幅解码位图（面板预览已有一份，这里的是冗余副本；
+  // 不清除的话 img 会一直保留旧位图，直到下次打开或被调用方撤销 URL）
+  if (_img) _img.removeAttribute('src');
 }
